@@ -70,13 +70,28 @@ def _is_logged_in(session):
 
 def get_session():
     """
-    Probiert Safari und Chrome – gibt (session, browser_name) zurück.
+    Probiert Safari, Chrome, Edge und Firefox.
+    Gibt (session, browser_name) zurück.
     Beendet das Script falls keiner eingeloggt ist.
     """
-    browsers = [
-        ('Safari', lambda: browser_cookie3.safari(domain_name='.srf.ch')),
-        ('Chrome', lambda: browser_cookie3.chrome(domain_name='.srf.ch')),
-    ]
+    import platform
+    is_windows = platform.system() == 'Windows'
+
+    # Reihenfolge: auf Windows Edge zuerst (vorinstalliert), dann Chrome
+    if is_windows:
+        browsers = [
+            ('Edge',    lambda: browser_cookie3.edge(domain_name='.srf.ch')),
+            ('Chrome',  lambda: browser_cookie3.chrome(domain_name='.srf.ch')),
+            ('Firefox', lambda: browser_cookie3.firefox(domain_name='.srf.ch')),
+        ]
+    else:
+        browsers = [
+            ('Safari',  lambda: browser_cookie3.safari(domain_name='.srf.ch')),
+            ('Chrome',  lambda: browser_cookie3.chrome(domain_name='.srf.ch')),
+            ('Edge',    lambda: browser_cookie3.edge(domain_name='.srf.ch')),
+            ('Firefox', lambda: browser_cookie3.firefox(domain_name='.srf.ch')),
+        ]
+
     for name, load_cookies in browsers:
         try:
             cj = load_cookies()
@@ -90,7 +105,10 @@ def get_session():
             print(f'   ○  {name}: {e}')
 
     print('\n❌  Kein Browser mit aktiver Session gefunden.')
-    print('   Bitte in Safari oder Chrome auf wmtippspiel.srf.ch einloggen.')
+    print('   Bitte auf wmtippspiel.srf.ch einloggen in:')
+    print('   Windows: Edge (empfohlen) oder Chrome')
+    print('   Mac:     Safari oder Chrome')
+    print('   Tipp: Start PC.bat mit Rechtsklick → Als Administrator ausfuehren')
     sys.exit(1)
 
 # ── Gruppennamen aus gruppen.txt laden ──────────────────────────

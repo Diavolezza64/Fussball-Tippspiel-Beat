@@ -30,7 +30,10 @@ Eintragen in `config/gruppen.txt`:
 
 ### 3. Im Browser einloggen
 
-Auf [wmtippspiel.srf.ch](https://wmtippspiel.srf.ch) in **Safari** oder **Chrome** einloggen (einmalig nötig).
+**Windows:** Auf [wmtippspiel.srf.ch](https://wmtippspiel.srf.ch) in **Microsoft Edge** einloggen (empfohlen, da vorinstalliert).  
+**Mac:** In **Safari** oder **Chrome** einloggen.
+
+Den Login einmalig durchführen – das Script liest die gespeicherte Session automatisch aus.
 
 ### 4. Starten
 
