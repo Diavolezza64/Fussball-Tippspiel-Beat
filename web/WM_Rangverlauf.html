@@ -630,7 +630,13 @@ function renderRvFilter() {
   const hidden = getHiddenPlayers();
   const players = data.members.filter(n => !hidden.has(n));
   const anySelected = _rvFilter.size > 0;
-  bar.innerHTML = players.map((name, i) => {
+  const allBtn = `<span onclick="clearRvFilter()"
+      style="cursor:pointer;font-size:11px;padding:2px 9px;border-radius:12px;
+             border:1.5px solid #8e8e93;
+             background:${_rvFilter.size===0 ? '#8e8e93' : 'transparent'};
+             color:${_rvFilter.size===0 ? '#fff' : '#8e8e93'};
+             font-weight:600;user-select:none;transition:all 0.15s">Alle</span>`;
+  bar.innerHTML = allBtn + players.map((name, i) => {
     const realIdx = data.members.indexOf(name);
     const color = PALETTE[realIdx] || '#888';
     const active = _rvFilter.has(name);
@@ -643,6 +649,12 @@ function renderRvFilter() {
              opacity:${dim ? '0.35' : '1'};
              transition:all 0.15s;user-select:none">${name}</span>`;
   }).join('');
+}
+
+function clearRvFilter() {
+  _rvFilter.clear();
+  renderRvFilter();
+  applyRvFilter();
 }
 
 function toggleRvFilter(name, paletteIdx) {
