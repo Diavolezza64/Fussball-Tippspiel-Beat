@@ -110,8 +110,10 @@ def _auto_update_members():
     print('✅  Mitglieder aktualisiert.')
 
 def _load_members():
-    """Lädt Teilnehmerliste aus config/teilnehmer.json (nicht hardcodiert)."""
-    _auto_update_members()   # gruppen.txt-Änderung erkennen und ggf. neu laden
+    """Lädt Teilnehmerliste aus config/teilnehmer.json (nicht hardcodiert).
+    Mitglieder in config/ausschluss.txt werden ignoriert (ein Name pro Zeile)."""
+    # Auto-Update deaktiviert: teilnehmer.json wird manuell gepflegt
+    # _auto_update_members()
     path = os.path.join(CONFIG_DIR, 'teilnehmer.json')
     if not os.path.exists(path):
         raise FileNotFoundError(
@@ -121,6 +123,14 @@ def _load_members():
         )
     with open(path, encoding='utf-8') as f:
         members = json.load(f)
+    # Ausschluss-Liste prüfen
+    ausschluss_path = os.path.join(CONFIG_DIR, 'ausschluss.txt')
+    if os.path.exists(ausschluss_path):
+        with open(ausschluss_path, encoding='utf-8') as f:
+            excluded = {l.strip().lower() for l in f if l.strip() and not l.startswith('#')}
+        members = [m for m in members if m['name'].lower() not in excluded]
+        if excluded:
+            print(f'   Ausgeschlossen: {", ".join(sorted(excluded))}')
     print(f'   Teilnehmer geladen: {len(members)} aus config/teilnehmer.json')
     return members
 

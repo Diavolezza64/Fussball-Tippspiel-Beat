@@ -1,0 +1,4 @@
+# Spieler, die aus der Tippgruppe ausgeschieden sind
+# Ein Name pro Zeile (Gross-/Kleinschreibung egal)
+Joe C
+Harry K
