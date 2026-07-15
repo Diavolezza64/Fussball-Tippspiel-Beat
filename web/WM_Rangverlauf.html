@@ -400,6 +400,7 @@ function _cfgSave() {
 }
 
 function isPlayerHidden(name){ return _cfgHidden.has(name); }
+function getHiddenPlayers(){ return _cfgHidden; }
 
 function renderConfig() {
   const el = document.getElementById('config-inner');
