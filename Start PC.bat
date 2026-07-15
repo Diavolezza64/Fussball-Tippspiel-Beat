@@ -101,6 +101,18 @@ goto done
 
 :run_python
 echo Python: %PYTHON_CMD%
+
+:: Auto-Update: neueste Code-Version laden (nur wenn config\update_source.txt vorhanden)
+if exist "config\update_source.txt" (
+    set /p UPDATE_BASE=<"config\update_source.txt"
+    echo Aktualisiere Code von GitHub ...
+    for %%f in (wm_auto.py wm_chart.py gen_rangliste.py debug_zusatz.py fetch_em_archiv.py fetch_wm_archiv.py wm2026_squads.py) do (
+        curl -sf --max-time 15 "!UPDATE_BASE!/tools/%%f" -o "tools\%%f" >nul 2>&1
+        if !errorlevel!==0 echo   OK: %%f
+    )
+    echo.
+)
+
 %PYTHON_CMD% tools\wm_auto.py
 
 :: GitHub: Aenderungen automatisch pushen (nur wenn Git eingerichtet ist)

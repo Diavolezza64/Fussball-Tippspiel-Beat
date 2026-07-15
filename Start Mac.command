@@ -14,6 +14,29 @@ echo "🏆 Fussball Tippspiel – Daten werden aktualisiert …"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
+# Auto-Update: neueste Code-Version laden (nur wenn config/update_source.txt vorhanden)
+UPDATE_SRC="$DIR/config/update_source.txt"
+if [ -f "$UPDATE_SRC" ]; then
+    BASE=$(tr -d '[:space:]' < "$UPDATE_SRC")
+    echo "→ Code-Update von $BASE …"
+    TOOLS="wm_auto.py wm_chart.py gen_rangliste.py debug_zusatz.py fetch_em_archiv.py fetch_wm_archiv.py wm2026_squads.py"
+    UPDATED=0
+    for f in $TOOLS; do
+        if curl -sf --max-time 15 "$BASE/tools/$f" -o "$DIR/tools/$f.tmp" 2>/dev/null; then
+            mv "$DIR/tools/$f.tmp" "$DIR/tools/$f"
+            UPDATED=$((UPDATED + 1))
+        else
+            rm -f "$DIR/tools/$f.tmp"
+        fi
+    done
+    if [ $UPDATED -gt 0 ]; then
+        echo "   ✓ $UPDATED Dateien aktualisiert"
+    else
+        echo "   (offline oder keine Änderungen)"
+    fi
+    echo ""
+fi
+
 # Python 3 suchen
 if command -v python3 &>/dev/null; then
     python3 tools/wm_auto.py
