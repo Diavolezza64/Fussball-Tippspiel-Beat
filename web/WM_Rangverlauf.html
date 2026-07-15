@@ -374,41 +374,55 @@ let fairSort    = { col: 'tot', dir: -1 };
 // ── Startup: use embedded data if available ───────────────────
 
 /* ── CONFIG ──────────────────────────────────────────────── */
-// Config-Daten kommen aus CFG_* Konstanten (injiziert von wm_auto.py aus data/-CSVs)
-const _cfgHidden = new Set(Array.isArray(CFG_HIDDEN) ? CFG_HIDDEN : []);
-const _cfgExtra  = Array.isArray(CFG_EXTRA) ? CFG_EXTRA : [];
+// Priorität: localStorage > eingebettete CFG-Konstanten (aus CSV via wm_auto.py)
+function _cfgInit() {
+  try {
+    const lsH = localStorage.getItem('cfg_hidden');
+    const lsE = localStorage.getItem('cfg_extra');
+    return {
+      hidden: new Set(lsH !== null ? JSON.parse(lsH) : (Array.isArray(CFG_HIDDEN) ? CFG_HIDDEN : [])),
+      extra:  lsE !== null ? JSON.parse(lsE) : (Array.isArray(CFG_EXTRA) ? CFG_EXTRA.map(r=>({name:r.name||'',id:r.id||''})) : [])
+    };
+  } catch(_) {
+    return {
+      hidden: new Set(Array.isArray(CFG_HIDDEN) ? CFG_HIDDEN : []),
+      extra:  Array.isArray(CFG_EXTRA) ? CFG_EXTRA.map(r=>({name:r.name||'',id:r.id||''})) : []
+    };
+  }
+}
+let {hidden: _cfgHidden, extra: _cfgExtra} = _cfgInit();
+
+function _cfgSave() {
+  try {
+    localStorage.setItem('cfg_hidden', JSON.stringify([..._cfgHidden]));
+    localStorage.setItem('cfg_extra',  JSON.stringify(_cfgExtra));
+  } catch(_) {}
+}
 
 function isPlayerHidden(name){ return _cfgHidden.has(name); }
 
 function renderConfig() {
   const el = document.getElementById('config-inner');
-  if (!el) return;
+  if (!el || !data) return;
+  const activeNames = new Set(data.members);
 
-  // Keine Daten eingebettet → wm_auto.py muss noch laufen
-  if (!CFG_HIDDEN && _cfgExtra.length === 0) {
-    el.innerHTML = `<div style="color:#6c6c70;font-size:12px;padding:12px 0">
-      ℹ️ Noch keine Konfiguration vorhanden.<br>
-      Daten werden beim nächsten Start von <code>wm_auto.py</code> aus<br>
-      <code>data/ehemalige_spieler.csv</code> und <code>data/zusatz_spieler.csv</code> gelesen.
-    </div>`;
-    return;
-  }
-
-  const activeNames = data ? new Set(data.members) : new Set();
-
-  // Tabelle 1: aktive Mitglieder mit Status
-  const t1active = data ? data.members.map((name, i) => {
+  // Aktive Mitglieder
+  const t1active = data.members.map((name, i) => {
     const isHid = _cfgHidden.has(name);
     return `<tr style="border-bottom:1px solid #f2f2f7">
       <td style="padding:5px 8px;font-size:12px;color:#6c6c70;width:28px">${i+1}</td>
       <td style="padding:5px 8px;font-size:12px">${name}</td>
       <td style="padding:5px 8px;text-align:center;width:130px">
-        <span style="font-size:11px;font-weight:500;color:${isHid?'#ff3b30':'#34c759'}">${isHid?'● ausgeblendet':'● aktiv'}</span>
+        <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <input type="checkbox" ${isHid?'checked':''} onchange="cfgToggle('${name.replace(/'/g,"\\'")}',this.checked)"
+            style="width:14px;height:14px;cursor:pointer">
+          <span style="font-size:11px;color:${isHid?'#ff3b30':'#34c759'}">${isHid?'ausgeblendet':'aktiv'}</span>
+        </label>
       </td>
     </tr>`;
-  }) : [];
+  });
 
-  // Ehemalige (in CFG_HIDDEN aber nicht mehr aktiv)
+  // Ehemalige (in _cfgHidden aber nicht aktiv)
   const former = [..._cfgHidden].filter(n => !activeNames.has(n));
   const t1former = former.map(name => `<tr style="border-bottom:1px solid #f2f2f7;background:#fffbf0">
       <td style="padding:5px 8px;font-size:12px;color:#6c6c70;width:28px">–</td>
@@ -416,29 +430,39 @@ function renderConfig() {
         <span style="font-size:10px;color:#ff9500;background:#fff3e0;border-radius:3px;padding:1px 5px;margin-left:4px">ehemaliger</span>
       </td>
       <td style="padding:5px 8px;text-align:center;width:130px">
-        <span style="font-size:11px;font-weight:500;color:#ff3b30">● ausgeblendet</span>
+        <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <input type="checkbox" checked onchange="cfgToggle('${name.replace(/'/g,"\\'")}',this.checked)"
+            style="width:14px;height:14px;cursor:pointer">
+          <span style="font-size:11px;color:#ff3b30">ausgeblendet</span>
+        </label>
       </td>
     </tr>`);
 
-  const t1rows = [...t1active, ...t1former].join('');
-
-  // Tabelle 2: Zusatzspieler
-  const t2rows = _cfgExtra.length > 0
-    ? _cfgExtra.map(p => `<tr style="border-bottom:1px solid #f2f2f7">
-        <td style="padding:5px 8px;font-size:12px">${p.name||'–'}</td>
-        <td style="padding:5px 8px;font-size:12px;color:#6c6c70;font-family:monospace">${p.id||'–'}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="2" style="padding:10px 8px;font-size:11px;color:#aaa">Keine Einträge</td></tr>`;
+  // Zusatzspieler
+  const t2rows = _cfgExtra.map((p, i) =>
+    `<tr style="border-bottom:1px solid #f2f2f7">
+      <td style="padding:4px 8px"><input value="${(p.name||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'name',this.value)"
+        placeholder="Name"
+        style="width:150px;font-size:12px;border:1px solid #d1d1d6;border-radius:4px;padding:3px 6px;font-family:inherit"></td>
+      <td style="padding:4px 8px"><input value="${(p.id||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'id',this.value)"
+        placeholder="SRF-ID"
+        style="width:90px;font-size:12px;border:1px solid #d1d1d6;border-radius:4px;padding:3px 6px;font-family:inherit"></td>
+      <td style="padding:4px 6px">
+        <button onclick="cfgExtraDel(${i})" title="Löschen"
+          style="font-size:11px;background:#ff3b30;color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer">✕</button>
+      </td>
+    </tr>`).join('');
 
   el.innerHTML = `
-    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <h3 style="font-size:13px;font-weight:700;color:#1c1c1e;margin:0">⚙️ Konfiguration</h3>
-      <span style="font-size:10px;color:#6c6c70">Quelle: <code>data/ehemalige_spieler.csv</code> · <code>data/zusatz_spieler.csv</code> · wird täglich von wm_auto.py gelesen</span>
+      <span style="font-size:10px;color:#34c759">● automatisch gespeichert</span>
     </div>
 
     <div style="background:#fff;border:1px solid #d1d1d6;border-radius:8px;overflow:hidden;margin-bottom:16px">
       <div style="background:#f2f2f7;padding:7px 12px;border-bottom:1px solid #d1d1d6">
         <span style="font-size:12px;font-weight:600;color:#1c1c1e">Ehemalige Mitspieler</span>
+        <span style="font-size:10px;color:#6c6c70;margin-left:6px">Ausgeblendet = erscheint in keiner Rangliste</span>
       </div>
       <table style="width:100%;border-collapse:collapse">
         <thead><tr style="background:#fafafa">
@@ -446,24 +470,41 @@ function renderConfig() {
           <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left">Name</th>
           <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:center;width:130px">Status</th>
         </tr></thead>
-        <tbody>${t1rows}</tbody>
+        <tbody>${[...t1active, ...t1former].join('')}</tbody>
       </table>
     </div>
 
     <div style="background:#fff;border:1px solid #d1d1d6;border-radius:8px;overflow:hidden">
-      <div style="background:#f2f2f7;padding:7px 12px;border-bottom:1px solid #d1d1d6">
+      <div style="background:#f2f2f7;padding:7px 12px;border-bottom:1px solid #d1d1d6;display:flex;align-items:center">
         <span style="font-size:12px;font-weight:600;color:#1c1c1e">Zusätzliche Spieler</span>
+        <button onclick="cfgExtraAdd()" style="margin-left:auto;font-size:11px;background:#34c759;color:#fff;border:none;border-radius:5px;padding:3px 12px;cursor:pointer">+ Hinzufügen</button>
       </div>
       <table style="width:100%;border-collapse:collapse">
         <thead><tr style="background:#fafafa">
           <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left">Name</th>
-          <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left;width:120px">SRF-ID</th>
+          <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left;width:110px">SRF-ID</th>
+          <th style="width:30px"></th>
         </tr></thead>
-        <tbody>${t2rows}</tbody>
+        <tbody>${t2rows||'<tr><td colspan="3" style="padding:10px 8px;font-size:11px;color:#aaa">Noch keine Einträge</td></tr>'}</tbody>
       </table>
     </div>
   `;
 }
+
+function cfgToggle(name, hide) {
+  if (hide) _cfgHidden.add(name); else _cfgHidden.delete(name);
+  _cfgSave();
+  // Label in-place aktualisieren
+  const span = event.target.nextElementSibling;
+  if (span) { span.textContent = hide ? 'ausgeblendet' : 'aktiv'; span.style.color = hide ? '#ff3b30' : '#34c759'; }
+  // Ranglisten & Chart neu rendern
+  if (currentTab === 'rangliste') calcRanking();
+  if (chart) { chart.destroy(); chart = null; }
+  if (currentTab === 'rangverl') requestAnimationFrame(() => { if (!chart) buildChart(); });
+}
+function cfgExtraEdit(i, field, val) { _cfgExtra[i][field] = val; _cfgSave(); }
+function cfgExtraDel(i)  { _cfgExtra.splice(i, 1); _cfgSave(); renderConfig(); }
+function cfgExtraAdd()   { _cfgExtra.push({name:'', id:''}); _cfgSave(); renderConfig(); }
 /* ── END CONFIG ───────────────────────────────────────────── */
 
 window.addEventListener('DOMContentLoaded', () => {
