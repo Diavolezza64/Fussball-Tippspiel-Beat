@@ -18,7 +18,7 @@ echo ""
 UPDATE_SRC="$DIR/config/update_source.txt"
 if [ -f "$UPDATE_SRC" ]; then
     BASE=$(tr -d '[:space:]' < "$UPDATE_SRC")
-    echo "→ Code-Update von $BASE …"
+    echo "→ Code-Update von GitHub …"
     TOOLS="wm_auto.py wm_chart.py gen_rangliste.py debug_zusatz.py fetch_em_archiv.py fetch_wm_archiv.py wm2026_squads.py"
     UPDATED=0
     for f in $TOOLS; do

@@ -28,3 +28,6 @@ config/github_repo.txt
 
 # Setup-Script (nur einmalig nötig)
 setup_github.command
+
+# Privater Ordner – bleibt lokal, nie auf GitHub
+new/
