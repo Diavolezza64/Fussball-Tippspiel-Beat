@@ -117,11 +117,41 @@ if exist "config\update_source.txt" (
 
 %PYTHON_CMD% tools\wm_auto.py
 
+:: GitHub: Ersteinrichtung falls kein .git vorhanden aber Token existiert
+if not exist ".git" (
+    if exist "config\github_token.txt" (
+        where git >nul 2>&1
+        if !errorlevel!==0 (
+            echo GitHub wird eingerichtet ...
+            set /p GH_TOKEN=<"config\github_token.txt"
+            :: Repo-Name aus Ordnername ableiten (Fussball-Tippspiel-Daniel-main → Fussball-Tippspiel-Daniel)
+            for %%I in ("%~dp0.") do set FOLDER=%%~nI
+            set REPO_NAME=!FOLDER:-main=!
+            :: GitHub Username via API holen
+            for /f "delims=" %%u in ('!PYTHON_CMD! -c "import urllib.request,json; r=urllib.request.Request(\"https://api.github.com/user\",headers={\"Authorization\":\"token !GH_TOKEN!\",\"User-Agent\":\"tippspiel\"}); print(json.loads(urllib.request.urlopen(r,timeout=10).read())[\"login\"])" 2^>nul') do set GH_USER=%%u
+            if not "!GH_USER!"=="" (
+                echo !GH_USER!/!REPO_NAME!> config\github_repo.txt
+                git init -b main >nul 2>&1
+                git config user.email "!GH_USER!@github.com" >nul 2>&1
+                git config user.name "!GH_USER!" >nul 2>&1
+                git remote add origin https://!GH_TOKEN!@github.com/!GH_USER!/!REPO_NAME!.git >nul 2>&1
+                git add . >nul 2>&1
+                git commit -m "Ersteinrichtung" >nul 2>&1
+                git push -u origin main >nul 2>&1
+                if !errorlevel!==0 (
+                    echo GitHub eingerichtet: github.com/!GH_USER!/!REPO_NAME!
+                ) else (
+                    echo GitHub-Push fehlgeschlagen ^(Token oder Repo pruefen^)
+                )
+            )
+        )
+    )
+)
+
 :: GitHub: Aenderungen automatisch pushen (nur wenn Git eingerichtet ist)
 if exist ".git" (
     where git >nul 2>&1
     if !errorlevel!==0 (
-        :: Token aus Datei lesen falls vorhanden
         if exist "config\github_token.txt" (
             set /p GH_TOKEN=<"config\github_token.txt"
             if exist "config\github_repo.txt" (
