@@ -110,6 +110,8 @@ if exist "config\update_source.txt" (
         curl -sf --max-time 15 "!UPDATE_BASE!/tools/%%f" -o "tools\%%f" >nul 2>&1
         if !errorlevel!==0 echo   OK: %%f
     )
+    curl -sf --max-time 30 "!UPDATE_BASE!/web/WM_Rangverlauf.html" -o "web\WM_Rangverlauf.html" >nul 2>&1
+    if !errorlevel!==0 echo   OK: WM_Rangverlauf.html
     echo.
 )
 

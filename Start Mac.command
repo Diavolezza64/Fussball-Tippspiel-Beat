@@ -29,6 +29,12 @@ if [ -f "$UPDATE_SRC" ]; then
             rm -f "$DIR/tools/$f.tmp"
         fi
     done
+    if curl -sf --max-time 30 "$BASE/web/WM_Rangverlauf.html" -o "$DIR/web/WM_Rangverlauf.html.tmp" 2>/dev/null; then
+        mv "$DIR/web/WM_Rangverlauf.html.tmp" "$DIR/web/WM_Rangverlauf.html"
+        UPDATED=$((UPDATED + 1))
+    else
+        rm -f "$DIR/web/WM_Rangverlauf.html.tmp"
+    fi
     if [ $UPDATED -gt 0 ]; then
         echo "   ✓ $UPDATED Dateien aktualisiert"
     else
