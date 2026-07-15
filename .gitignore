@@ -25,6 +25,7 @@ config/teilnehmer.json
 # Lokale Spieler-Konfiguration (nur beim Admin, nie auf GitHub)
 config/hidden_players.csv
 config/extra_players.csv
+config/ausschluss.txt
 
 # GitHub-Zugangsdaten (privat, nie auf GitHub laden)
 config/github_token.txt
