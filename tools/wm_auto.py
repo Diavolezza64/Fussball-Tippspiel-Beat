@@ -818,6 +818,14 @@ def embed_in_html(rang_path, tipps_path, games_meta=None, zusatz_data=None):
     html = re.sub(r'/\*TIPPS_DATA\*/.*?/\*END_TIPPS\*/',
                   f'/*TIPPS_DATA*/{tipps_data}/*END_TIPPS*/', html, flags=re.DOTALL)
 
+
+    # Config-Daten (hidden players + extra players) aus lokalen CSVs injizieren
+    cfg_hidden, cfg_extra = load_config_csvs()
+    html = re.sub(r'/\*CFG_HIDDEN\*/.*?/\*END_CFG_HIDDEN\*/',
+                  f'/*CFG_HIDDEN*/{cfg_hidden}/*END_CFG_HIDDEN*/', html, flags=re.DOTALL)
+    html = re.sub(r'/\*CFG_EXTRA\*/.*?/\*END_CFG_EXTRA\*/',
+                  f'/*CFG_EXTRA*/{cfg_extra}/*END_CFG_EXTRA*/', html, flags=re.DOTALL)
+
     # Finalspiele-Daten (echte Teams + Resultate)
     finals_data = build_finals_data(games_meta) if games_meta else {}
 
@@ -1039,6 +1047,41 @@ def _read_config(filename, default=""):
 GITHUB_TOKEN = _read_config('github_token.txt')
 GITHUB_REPO  = _read_config('github_repo.txt', 'Diavolezza64/Fussball-Tippspiel-Beat')
 
+
+def load_config_csvs():
+    """Liest config/hidden_players.csv und config/extra_players.csv.
+    Gibt JSON-Strings zurück, die in die HTML-Marker injiziert werden."""
+    import json as _json
+
+    hidden_path = os.path.join(BASE_DIR, 'config', 'hidden_players.csv')
+    extra_path  = os.path.join(BASE_DIR, 'config', 'extra_players.csv')
+
+    # hidden_players.csv: eine Spalte "name"
+    hidden = []
+    if os.path.exists(hidden_path):
+        with open(hidden_path, encoding='utf-8') as f:
+            rows = list(csv.DictReader(f))
+            hidden = [r.get('name','').strip() for r in rows if r.get('name','').strip()]
+
+    # extra_players.csv: Spalten "name","id"
+    extra = []
+    if os.path.exists(extra_path):
+        with open(extra_path, encoding='utf-8') as f:
+            rows = list(csv.DictReader(f))
+            extra = [{'name': r.get('name','').strip(), 'id': r.get('id','').strip()}
+                     for r in rows if r.get('name','').strip()]
+
+    return _json.dumps(hidden, ensure_ascii=False), _json.dumps(extra, ensure_ascii=False)
+
+
+def strip_config_from_html(html):
+    """Entfernt CFG-Daten aus HTML bevor es auf GitHub hochgeladen wird."""
+    html = re.sub(r'/\*CFG_HIDDEN\*/.*?/\*END_CFG_HIDDEN\*/',
+                  '/*CFG_HIDDEN*/null/*END_CFG_HIDDEN*/', html, flags=re.DOTALL)
+    html = re.sub(r'/\*CFG_EXTRA\*/.*?/\*END_CFG_EXTRA\*/',
+                  '/*CFG_EXTRA*/[]/*END_CFG_EXTRA*/', html, flags=re.DOTALL)
+    return html
+
 def upload_to_github():
     """Lädt WM_Rangverlauf.html als index.html auf GitHub hoch (erstellt oder aktualisiert)."""
     import base64, json, urllib.request, urllib.error
@@ -1068,8 +1111,9 @@ def upload_to_github():
             print(f'   ⚠️  GitHub SHA-Abruf fehlgeschlagen: {e.code}')
             return
 
-    with open(html_path, 'rb') as f:
-        content_b64 = base64.b64encode(f.read()).decode('ascii')
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html_for_upload = strip_config_from_html(f.read())
+    content_b64 = base64.b64encode(html_for_upload.encode('utf-8')).decode('ascii')
 
     payload = {"message": f"Update WM Rangliste {datetime.now().strftime('%Y-%m-%d')}", "content": content_b64}
     if sha:
