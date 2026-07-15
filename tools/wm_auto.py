@@ -1049,30 +1049,28 @@ GITHUB_REPO  = _read_config('github_repo.txt', 'Diavolezza64/Fussball-Tippspiel-
 
 
 def load_config_csvs():
-    """Liest data/ehemalige_spieler.csv und data/zusatz_spieler.csv.
-    Gibt JSON-Strings zurück, die in die HTML-Marker injiziert werden.
-    Diese Dateien sind in .gitignore und gehen NIE auf GitHub."""
+    """Liest config/ausschluss.txt (ehemalige) und data/zusatz_spieler.csv.
+    Gibt JSON-Strings zurück, die in die HTML-Marker injiziert werden."""
     import json as _json
 
-    hidden_path = os.path.join(BASE_DIR, 'data', 'ehemalige_spieler.csv')
-    extra_path  = os.path.join(BASE_DIR, 'data', 'zusatz_spieler.csv')
-
-    # ehemalige_spieler.csv: eine Spalte "name"
+    # Ehemalige aus bestehender ausschluss.txt lesen
+    ausschluss_path = os.path.join(CONFIG_DIR, 'ausschluss.txt')
     hidden = []
-    if os.path.exists(hidden_path):
-        with open(hidden_path, encoding='utf-8') as f:
-            rows = list(csv.DictReader(f))
-            hidden = [r.get('name','').strip() for r in rows if r.get('name','').strip()]
-        print(f'   Config: {len(hidden)} ehemalige Spieler geladen')
+    if os.path.exists(ausschluss_path):
+        with open(ausschluss_path, encoding='utf-8') as f:
+            for line in f:
+                name = line.strip()
+                if name and not name.startswith('#'):
+                    hidden.append(name)
 
-    # zusatz_spieler.csv: Spalten "name","id"
+    # Zusatzspieler aus data/zusatz_spieler.csv
+    extra_path = os.path.join(BASE_DIR, 'data', 'zusatz_spieler.csv')
     extra = []
     if os.path.exists(extra_path):
         with open(extra_path, encoding='utf-8') as f:
             rows = list(csv.DictReader(f))
             extra = [{'name': r.get('name','').strip(), 'id': r.get('id','').strip()}
                      for r in rows if r.get('name','').strip()]
-        print(f'   Config: {len(extra)} Zusatzspieler geladen')
 
     return _json.dumps(hidden, ensure_ascii=False), _json.dumps(extra, ensure_ascii=False)
 
