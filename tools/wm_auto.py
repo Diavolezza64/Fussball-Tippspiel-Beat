@@ -1246,7 +1246,9 @@ def _auto_github_setup():
 
 def _git_push_if_setup():
     """Pusht falls .git vorhanden. Token wird verwendet wenn vorhanden (andere User),
-    sonst macOS Keychain (Beat)."""
+    sonst macOS Keychain (Beat).
+    Schreibt ausserdem die bereinigte WM_Rangverlauf.html als index.html ins Root,
+    damit GitHub Pages aktuell bleibt – ohne API-Token."""
     import subprocess
     git_dir    = os.path.join(BASE_DIR, '.git')
     token_file = os.path.join(CONFIG_DIR, 'github_token.txt')
@@ -1254,6 +1256,18 @@ def _git_push_if_setup():
 
     if not os.path.exists(git_dir):
         return  # Kein git-Repo → überspringen
+
+    # Root index.html aus WM_Rangverlauf.html erzeugen (private Daten entfernen)
+    html_src  = os.path.join(WEB_DIR, TURNIER.get('html_datei', 'WM_Rangverlauf.html'))
+    index_dst = os.path.join(BASE_DIR, 'index.html')
+    if os.path.exists(html_src):
+        try:
+            with open(html_src, encoding='utf-8') as f:
+                html = strip_config_from_html(f.read())
+            with open(index_dst, 'w', encoding='utf-8') as f:
+                f.write(html)
+        except Exception as e:
+            print(f'   ⚠️  index.html konnte nicht erzeugt werden: {e}')
 
     # Token + Repo-URL setzen falls vorhanden (für Daniel/andere)
     if os.path.exists(token_file) and os.path.exists(repo_file):
