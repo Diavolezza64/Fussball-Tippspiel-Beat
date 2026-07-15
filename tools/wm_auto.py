@@ -1075,7 +1075,7 @@ def update_index_html():
 # ── GitHub Pages Upload ───────────────────────────────────────
 # Token + Repo aus config/-Dateien lesen (nie im Code speichern)
 def _read_config(filename, default=""):
-    path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', filename)
+    path = os.path.join(CONFIG_DIR, filename)
     try:
         with open(path, encoding='utf-8') as f:
             return f.read().strip()
@@ -1245,21 +1245,24 @@ def _auto_github_setup():
 
 
 def _git_push_if_setup():
-    """Pusht falls .git vorhanden und Token gesetzt."""
+    """Pusht falls .git vorhanden. Token wird verwendet wenn vorhanden (andere User),
+    sonst macOS Keychain (Beat)."""
     import subprocess
-    git_dir   = os.path.join(BASE_DIR, '.git')
+    git_dir    = os.path.join(BASE_DIR, '.git')
     token_file = os.path.join(CONFIG_DIR, 'github_token.txt')
     repo_file  = os.path.join(CONFIG_DIR, 'github_repo.txt')
 
-    if not os.path.exists(git_dir) or not os.path.exists(token_file):
-        return
+    if not os.path.exists(git_dir):
+        return  # Kein git-Repo → überspringen
 
-    token = open(token_file, encoding='utf-8').read().strip()
-    if os.path.exists(repo_file):
-        gh_repo = open(repo_file, encoding='utf-8').read().strip()
-        remote = f'https://{token}@github.com/{gh_repo}.git'
-        subprocess.run(['git', '-C', BASE_DIR, 'remote', 'set-url', 'origin', remote],
-                       capture_output=True)
+    # Token + Repo-URL setzen falls vorhanden (für Daniel/andere)
+    if os.path.exists(token_file) and os.path.exists(repo_file):
+        token   = open(token_file, encoding='utf-8').read().strip()
+        gh_repo = open(repo_file,  encoding='utf-8').read().strip()
+        if token and gh_repo:
+            remote = f'https://{token}@github.com/{gh_repo}.git'
+            subprocess.run(['git', '-C', BASE_DIR, 'remote', 'set-url', 'origin', remote],
+                           capture_output=True)
 
     subprocess.run(['git', '-C', BASE_DIR, 'add', '.'], capture_output=True)
     result = subprocess.run(['git', '-C', BASE_DIR, 'diff', '--cached', '--quiet'],
