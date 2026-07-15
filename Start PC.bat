@@ -121,6 +121,14 @@ if exist "config\update_source.txt" (
 if exist ".git" (
     where git >nul 2>&1
     if !errorlevel!==0 (
+        :: Token aus Datei lesen falls vorhanden
+        if exist "config\github_token.txt" (
+            set /p GH_TOKEN=<"config\github_token.txt"
+            if exist "config\github_repo.txt" (
+                set /p GH_REPO=<"config\github_repo.txt"
+                git remote set-url origin https://!GH_TOKEN!@github.com/!GH_REPO!.git >nul 2>&1
+            )
+        )
         git add . >nul 2>&1
         git diff --cached --quiet >nul 2>&1
         if !errorlevel!==1 (
