@@ -367,10 +367,9 @@ window.addEventListener('DOMContentLoaded', () => {
     injectVirtualPlayers();
     buildChart(); buildDropdowns();
     const dz = document.getElementById('dz-rang');
-    dz.textContent = `✅ Eingebettete Daten — ${data.members.length} Spieler, ${data.gameNums.length} Spiele`;
-    dz.classList.add('loaded'); dz.onclick = null;
-    document.getElementById('ranking-toggle').style.display = 'block';
-    document.getElementById('dz-tipps').style.display = 'block';
+    if (dz) { dz.textContent = `✅ Eingebettete Daten — ${data.members.length} Spieler, ${data.gameNums.length} Spiele`; dz.classList.add('loaded'); dz.onclick = null; }
+    const rt = document.getElementById('ranking-toggle'); if (rt) rt.style.display = 'block';
+    const dt = document.getElementById('dz-tipps'); if (dt) dt.style.display = 'block';
   } else {
     document.getElementById('hint').textContent = 'Bitte WM_Rangverlauf CSV laden';
   }
@@ -378,8 +377,7 @@ window.addEventListener('DOMContentLoaded', () => {
     tipData = EMBEDDED_TIPPS;
     injectVirtualPlayers(); // re-inject now that tipData is available
     const dz = document.getElementById('dz-tipps');
-    dz.textContent = `✅ Eingebettete Tipps — ${tipData.length} Einträge`;
-    dz.classList.add('loaded'); dz.onclick = null;
+    if (dz) { dz.textContent = `✅ Eingebettete Tipps — ${tipData.length} Einträge`; dz.classList.add('loaded'); dz.onclick = null; }
     // refresh the active ranking sub-tab if visible
     if (currentTab === 'rangliste') {
       for (const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','weltrangliste','marktwert','peter','fair','bonus','favoriten','zeitraum']) {
@@ -393,6 +391,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // ── Manual file loaders (fallback) ───────────────────────────
 function setupDrop(dzId, inputId, handler) {
   const dz = document.getElementById(dzId), fi = document.getElementById(inputId);
+  if (!dz || !fi) return; // Sidebar-Elemente entfernt – kein Drop-Setup nötig
   fi.addEventListener('change', e => e.target.files[0] && handler(e.target.files[0], dz));
   dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('dragover'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
@@ -432,8 +431,8 @@ function onRangverlauf(text, filename, dz) {
   buildChart(); buildDropdowns();
   dz.textContent=`✅ ${filename}  —  ${members.length} Spieler, ${gameNums.length} Spiele`;
   dz.classList.add('loaded'); dz.onclick=null;
-  document.getElementById('dz-tipps').style.display='block';
-  document.getElementById('ranking-toggle').style.display='block';
+  const _dt = document.getElementById('dz-tipps'); if (_dt) _dt.style.display='block';
+  const _rt = document.getElementById('ranking-toggle'); if (_rt) _rt.style.display='block';
 }
 
 function onTipps(text, filename, dz) {
@@ -543,10 +542,10 @@ function toggleRanking(){
   const isOpen=panel.style.display==='flex';
   if(isOpen){
     panel.style.display='none'; panel.style.flex=''; panel.style.maxHeight='';
-    chartWrap.style.display=''; btn.textContent='📋 Rangliste / Tipps nach Zeitraum';
+    chartWrap.style.display=''; if(btn) btn.textContent='📋 Rangliste / Tipps nach Zeitraum';
   } else {
     panel.style.display='flex'; panel.style.flex='1'; panel.style.maxHeight='none';
-    chartWrap.style.display='none'; btn.textContent='✖ Panel schliessen';
+    chartWrap.style.display='none'; if(btn) btn.textContent='✖ Panel schliessen';
   }
 }
 function switchTab(name){
