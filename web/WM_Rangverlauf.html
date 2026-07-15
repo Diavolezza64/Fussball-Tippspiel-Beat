@@ -374,27 +374,31 @@ let fairSort    = { col: 'tot', dir: -1 };
 // ── Startup: use embedded data if available ───────────────────
 
 /* ── CONFIG ──────────────────────────────────────────────── */
-// Priorität: localStorage > eingebettete CFG-Konstanten (aus CSV via wm_auto.py)
+// _cfgFormer  = wer in der "Ehemalige"-Tabelle erscheint (unabhängig vom hidden-Status)
+// _cfgHidden  = wer aus Ranglisten/Charts ausgeblendet ist
+// _cfgExtra   = zusätzliche Spieler (nicht in SRF-Gruppe)
 function _cfgInit() {
   try {
     const lsH = localStorage.getItem('cfg_hidden');
+    const lsF = localStorage.getItem('cfg_former');
     const lsE = localStorage.getItem('cfg_extra');
+    const baseHidden = Array.isArray(CFG_HIDDEN) ? CFG_HIDDEN : [];
     return {
-      hidden: new Set(lsH !== null ? JSON.parse(lsH) : (Array.isArray(CFG_HIDDEN) ? CFG_HIDDEN : [])),
+      hidden: new Set(lsH !== null ? JSON.parse(lsH) : baseHidden),
+      former: new Set(lsF !== null ? JSON.parse(lsF) : baseHidden),
       extra:  lsE !== null ? JSON.parse(lsE) : (Array.isArray(CFG_EXTRA) ? CFG_EXTRA.map(r=>({name:r.name||'',id:r.id||''})) : [])
     };
   } catch(_) {
-    return {
-      hidden: new Set(Array.isArray(CFG_HIDDEN) ? CFG_HIDDEN : []),
-      extra:  Array.isArray(CFG_EXTRA) ? CFG_EXTRA.map(r=>({name:r.name||'',id:r.id||''})) : []
-    };
+    const base = Array.isArray(CFG_HIDDEN) ? CFG_HIDDEN : [];
+    return { hidden: new Set(base), former: new Set(base), extra: Array.isArray(CFG_EXTRA) ? CFG_EXTRA.map(r=>({name:r.name||'',id:r.id||''})) : [] };
   }
 }
-let {hidden: _cfgHidden, extra: _cfgExtra} = _cfgInit();
+let {hidden: _cfgHidden, former: _cfgFormer, extra: _cfgExtra} = _cfgInit();
 
 function _cfgSave() {
   try {
     localStorage.setItem('cfg_hidden', JSON.stringify([..._cfgHidden]));
+    localStorage.setItem('cfg_former', JSON.stringify([..._cfgFormer]));
     localStorage.setItem('cfg_extra',  JSON.stringify(_cfgExtra));
   } catch(_) {}
 }
@@ -407,7 +411,12 @@ function renderConfig() {
   if (!el || !data) return;
   const activeNames = new Set(data.members);
 
-  // Aktive Mitglieder
+  // Beim ersten Aufruf ohne localStorage: former aus CFG_HIDDEN ableiten
+  if (!localStorage.getItem('cfg_former') && Array.isArray(CFG_HIDDEN)) {
+    CFG_HIDDEN.filter(n => !activeNames.has(n)).forEach(n => _cfgFormer.add(n));
+  }
+
+  // Tabelle 1a: aktive SRF-Mitglieder
   const t1active = data.members.map((name, i) => {
     const isHid = _cfgHidden.has(name);
     return `<tr style="border-bottom:1px solid #f2f2f7">
@@ -423,23 +432,25 @@ function renderConfig() {
     </tr>`;
   });
 
-  // Ehemalige (in _cfgHidden aber nicht aktiv)
-  const former = [..._cfgHidden].filter(n => !activeNames.has(n));
-  const t1former = former.map(name => `<tr style="border-bottom:1px solid #f2f2f7;background:#fffbf0">
+  // Tabelle 1b: ehemalige (in _cfgFormer, nicht in activeNames) — immer sichtbar
+  const t1former = [..._cfgFormer].filter(n => !activeNames.has(n)).map(name => {
+    const isHid = _cfgHidden.has(name);
+    return `<tr style="border-bottom:1px solid #f2f2f7;background:#fffbf0">
       <td style="padding:5px 8px;font-size:12px;color:#6c6c70;width:28px">–</td>
       <td style="padding:5px 8px;font-size:12px">${name}
         <span style="font-size:10px;color:#ff9500;background:#fff3e0;border-radius:3px;padding:1px 5px;margin-left:4px">ehemaliger</span>
       </td>
       <td style="padding:5px 8px;text-align:center;width:130px">
         <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-          <input type="checkbox" checked onchange="cfgToggle('${name.replace(/'/g,"\\'")}',this.checked)"
+          <input type="checkbox" ${isHid?'checked':''} onchange="cfgToggle('${name.replace(/'/g,"\\'")}',this.checked)"
             style="width:14px;height:14px;cursor:pointer">
-          <span style="font-size:11px;color:#ff3b30">ausgeblendet</span>
+          <span style="font-size:11px;color:${isHid?'#ff3b30':'#34c759'}">${isHid?'ausgeblendet':'aktiv'}</span>
         </label>
       </td>
-    </tr>`);
+    </tr>`;
+  });
 
-  // Zusatzspieler
+  // Tabelle 2: Zusatzspieler
   const t2rows = _cfgExtra.map((p, i) =>
     `<tr style="border-bottom:1px solid #f2f2f7">
       <td style="padding:4px 8px"><input value="${(p.name||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'name',this.value)"
@@ -449,8 +460,7 @@ function renderConfig() {
         placeholder="SRF-ID"
         style="width:90px;font-size:12px;border:1px solid #d1d1d6;border-radius:4px;padding:3px 6px;font-family:inherit"></td>
       <td style="padding:4px 6px">
-        <button onclick="cfgExtraDel(${i})" title="Löschen"
-          style="font-size:11px;background:#ff3b30;color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer">✕</button>
+        <button onclick="cfgExtraDel(${i})" style="font-size:11px;background:#ff3b30;color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer">✕</button>
       </td>
     </tr>`).join('');
 
@@ -495,17 +505,15 @@ function renderConfig() {
 function cfgToggle(name, hide) {
   if (hide) _cfgHidden.add(name); else _cfgHidden.delete(name);
   _cfgSave();
-  // Label in-place aktualisieren
   const span = event.target.nextElementSibling;
-  if (span) { span.textContent = hide ? 'ausgeblendet' : 'aktiv'; span.style.color = hide ? '#ff3b30' : '#34c759'; }
-  // Ranglisten & Chart neu rendern
-  if (currentTab === 'rangliste') calcRanking();
-  if (chart) { chart.destroy(); chart = null; }
-  if (currentTab === 'rangverl') requestAnimationFrame(() => { if (!chart) buildChart(); });
+  if (span) { span.textContent = hide?'ausgeblendet':'aktiv'; span.style.color = hide?'#ff3b30':'#34c759'; }
+  if (currentTab==='rangliste') calcRanking();
+  if (chart) { chart.destroy(); chart=null; }
+  if (currentTab==='rangverl') requestAnimationFrame(()=>{ if(!chart) buildChart(); });
 }
-function cfgExtraEdit(i, field, val) { _cfgExtra[i][field] = val; _cfgSave(); }
-function cfgExtraDel(i)  { _cfgExtra.splice(i, 1); _cfgSave(); renderConfig(); }
-function cfgExtraAdd()   { _cfgExtra.push({name:'', id:''}); _cfgSave(); renderConfig(); }
+function cfgExtraEdit(i, field, val) { _cfgExtra[i][field]=val; _cfgSave(); }
+function cfgExtraDel(i)  { _cfgExtra.splice(i,1); _cfgSave(); renderConfig(); }
+function cfgExtraAdd()   { _cfgExtra.push({name:'',id:''}); _cfgSave(); renderConfig(); }
 /* ── END CONFIG ───────────────────────────────────────────── */
 
 window.addEventListener('DOMContentLoaded', () => {
