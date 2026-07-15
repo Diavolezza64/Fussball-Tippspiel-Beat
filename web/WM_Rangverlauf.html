@@ -150,7 +150,7 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
     </div>
     <div class="tab-bar" id="main-tab-bar">
       <button class="tab-btn active" onclick="switchTab('rangliste')">🏆 Rangliste</button>
-      <button class="tab-btn" onclick="switchTab('rangverl')">📈 Rangverlauf</button>
+      <button class="tab-btn" onclick="switchTab('rangverl')">🔀 Rangverlauf</button>
       <button class="tab-btn" onclick="switchTab('resultate')">📊 Häufigste Tipps</button>
       <button class="tab-btn" onclick="switchTab('frequenz')">🔢 Tipp-Frequenz</button>
       <button class="tab-btn" onclick="switchTab('vergleich')">⚖️ Vergleich</button>
@@ -374,142 +374,145 @@ let fairSort    = { col: 'tot', dir: -1 };
 // ── Startup: use embedded data if available ───────────────────
 
 /* ── CONFIG ──────────────────────────────────────────────── */
-// _cfgFormer  = wer in der "Ehemalige"-Tabelle erscheint (unabhängig vom hidden-Status)
-// _cfgHidden  = wer aus Ranglisten/Charts ausgeblendet ist
-// _cfgExtra   = zusätzliche Spieler (nicht in SRF-Gruppe)
 function _cfgInit() {
   try {
-    const lsH = localStorage.getItem('cfg_hidden');
     const lsF = localStorage.getItem('cfg_former');
     const lsE = localStorage.getItem('cfg_extra');
-    const baseHidden = Array.isArray(CFG_HIDDEN) ? CFG_HIDDEN : [];
+    const base = Array.isArray(CFG_HIDDEN) ? CFG_HIDDEN : [];
     return {
-      hidden: new Set(lsH !== null ? JSON.parse(lsH) : baseHidden),
-      former: new Set(lsF !== null ? JSON.parse(lsF) : baseHidden),
+      former: new Set(lsF !== null ? JSON.parse(lsF) : base),
       extra:  lsE !== null ? JSON.parse(lsE) : (Array.isArray(CFG_EXTRA) ? CFG_EXTRA.map(r=>({name:r.name||'',id:r.id||''})) : [])
     };
   } catch(_) {
-    const base = Array.isArray(CFG_HIDDEN) ? CFG_HIDDEN : [];
-    return { hidden: new Set(base), former: new Set(base), extra: Array.isArray(CFG_EXTRA) ? CFG_EXTRA.map(r=>({name:r.name||'',id:r.id||''})) : [] };
+    return { former: new Set(Array.isArray(CFG_HIDDEN)?CFG_HIDDEN:[]), extra: [] };
   }
 }
-let {hidden: _cfgHidden, former: _cfgFormer, extra: _cfgExtra} = _cfgInit();
+let {former: _cfgFormer, extra: _cfgExtra} = _cfgInit();
 
 function _cfgSave() {
   try {
-    localStorage.setItem('cfg_hidden', JSON.stringify([..._cfgHidden]));
     localStorage.setItem('cfg_former', JSON.stringify([..._cfgFormer]));
     localStorage.setItem('cfg_extra',  JSON.stringify(_cfgExtra));
   } catch(_) {}
 }
 
-function isPlayerHidden(name){ return _cfgHidden.has(name); }
-function getHiddenPlayers(){ return _cfgHidden; }
+// Für Ranglisten/Charts: alle former sind ausgeblendet
+function isPlayerHidden(name){ return _cfgFormer.has(name); }
+function getHiddenPlayers(){ return _cfgFormer; }
 
 function renderConfig() {
   const el = document.getElementById('config-inner');
   if (!el || !data) return;
   const activeNames = new Set(data.members);
 
-  // Beim ersten Aufruf ohne localStorage: former aus CFG_HIDDEN ableiten
-  if (!localStorage.getItem('cfg_former') && Array.isArray(CFG_HIDDEN)) {
-    CFG_HIDDEN.filter(n => !activeNames.has(n)).forEach(n => _cfgFormer.add(n));
-  }
+  // Aktive = in data.members UND nicht in _cfgFormer
+  const aktive = data.members.filter(n => !_cfgFormer.has(n));
+  // Ehemalige = in _cfgFormer (egal ob in data.members oder nicht)
+  const ehemalige = [..._cfgFormer];
 
-  // Tabelle 1a: aktive SRF-Mitglieder
-  const t1active = data.members.map((name, i) => {
-    const isHid = _cfgHidden.has(name);
-    return `<tr style="border-bottom:1px solid #f2f2f7">
-      <td style="padding:5px 8px;font-size:12px;color:#6c6c70;width:28px">${i+1}</td>
-      <td style="padding:5px 8px;font-size:12px">${name}</td>
-      <td style="padding:5px 8px;text-align:center;width:130px">
-        <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-          <input type="checkbox" ${isHid?'checked':''} onchange="cfgToggle('${name.replace(/'/g,"\\'")}',this.checked)"
-            style="width:14px;height:14px;cursor:pointer">
-          <span style="font-size:11px;color:${isHid?'#ff3b30':'#34c759'}">${isHid?'ausgeblendet':'aktiv'}</span>
-        </label>
-      </td>
-    </tr>`;
-  });
-
-  // Tabelle 1b: ehemalige (in _cfgFormer, nicht in activeNames) — immer sichtbar
-  const t1former = [..._cfgFormer].filter(n => !activeNames.has(n)).map(name => {
-    const isHid = _cfgHidden.has(name);
-    return `<tr style="border-bottom:1px solid #f2f2f7;background:#fffbf0">
-      <td style="padding:5px 8px;font-size:12px;color:#6c6c70;width:28px">–</td>
-      <td style="padding:5px 8px;font-size:12px">${name}
-        <span style="font-size:10px;color:#ff9500;background:#fff3e0;border-radius:3px;padding:1px 5px;margin-left:4px">ehemaliger</span>
-      </td>
-      <td style="padding:5px 8px;text-align:center;width:130px">
-        <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-          <input type="checkbox" ${isHid?'checked':''} onchange="cfgToggle('${name.replace(/'/g,"\\'")}',this.checked)"
-            style="width:14px;height:14px;cursor:pointer">
-          <span style="font-size:11px;color:${isHid?'#ff3b30':'#34c759'}">${isHid?'ausgeblendet':'aktiv'}</span>
-        </label>
-      </td>
-    </tr>`;
-  });
-
-  // Tabelle 2: Zusatzspieler
-  const t2rows = _cfgExtra.map((p, i) =>
-    `<tr style="border-bottom:1px solid #f2f2f7">
-      <td style="padding:4px 8px"><input value="${(p.name||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'name',this.value)"
-        placeholder="Name"
-        style="width:150px;font-size:12px;border:1px solid #d1d1d6;border-radius:4px;padding:3px 6px;font-family:inherit"></td>
-      <td style="padding:4px 8px"><input value="${(p.id||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'id',this.value)"
-        placeholder="SRF-ID"
-        style="width:90px;font-size:12px;border:1px solid #d1d1d6;border-radius:4px;padding:3px 6px;font-family:inherit"></td>
-      <td style="padding:4px 6px">
-        <button onclick="cfgExtraDel(${i})" style="font-size:11px;background:#ff3b30;color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer">✕</button>
+  const rowAktiv = aktive.map((name,i) => `
+    <tr style="border-bottom:1px solid #f2f2f7">
+      <td style="padding:5px 10px;font-size:12px;color:#6c6c70;width:28px">${i+1}</td>
+      <td style="padding:5px 10px;font-size:12px">${name}</td>
+      <td style="padding:5px 8px;width:120px;text-align:right">
+        <button onclick="cfgMakeFormer('${name.replace(/'/g,"\\'")}','aktiv-${i}')"
+          style="font-size:11px;background:#ff9500;color:#fff;border:none;border-radius:5px;padding:3px 10px;cursor:pointer">
+          → ehemaliger
+        </button>
       </td>
     </tr>`).join('');
 
+  const rowEhemal = ehemalige.length === 0
+    ? '<tr><td colspan="3" style="padding:10px;font-size:11px;color:#aaa">Keine ehemaligen Mitglieder</td></tr>'
+    : ehemalige.map((name,i) => `
+    <tr style="border-bottom:1px solid #f2f2f7;background:#fffbf0">
+      <td style="padding:5px 10px;font-size:12px;color:#6c6c70;width:28px">${i+1}</td>
+      <td style="padding:5px 10px;font-size:12px">${name}</td>
+      <td style="padding:5px 8px;width:120px;text-align:right">
+        <button onclick="cfgMakeActive('${name.replace(/'/g,"\\'")}','ehem-${i}')"
+          style="font-size:11px;background:#34c759;color:#fff;border:none;border-radius:5px;padding:3px 10px;cursor:pointer">
+          → aktiv
+        </button>
+      </td>
+    </tr>`).join('');
+
+  const rowExtra = _cfgExtra.map((p,i) => `
+    <tr style="border-bottom:1px solid #f2f2f7">
+      <td style="padding:4px 8px">
+        <input value="${(p.name||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'name',this.value)"
+          placeholder="Name"
+          style="width:140px;font-size:12px;border:1px solid #d1d1d6;border-radius:4px;padding:3px 6px;font-family:inherit">
+      </td>
+      <td style="padding:4px 8px">
+        <input value="${(p.id||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'id',this.value)"
+          placeholder="SRF-ID"
+          style="width:90px;font-size:12px;border:1px solid #d1d1d6;border-radius:4px;padding:3px 6px;font-family:inherit">
+      </td>
+      <td style="padding:4px 6px;width:36px">
+        <button onclick="cfgExtraDel(${i})"
+          style="font-size:11px;background:#ff3b30;color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer">✕</button>
+      </td>
+    </tr>`).join('');
+
+  const tHead1 = `<thead><tr style="background:#fafafa">
+    <th style="padding:4px 10px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left;width:28px">#</th>
+    <th style="padding:4px 10px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left">Name</th>
+    <th style="width:120px"></th>
+  </tr></thead>`;
+
   el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <h3 style="font-size:13px;font-weight:700;color:#1c1c1e;margin:0">⚙️ Konfiguration</h3>
       <span style="font-size:10px;color:#34c759">● automatisch gespeichert</span>
     </div>
 
-    <div style="background:#fff;border:1px solid #d1d1d6;border-radius:8px;overflow:hidden;margin-bottom:16px">
-      <div style="background:#f2f2f7;padding:7px 12px;border-bottom:1px solid #d1d1d6">
-        <span style="font-size:12px;font-weight:600;color:#1c1c1e">Ehemalige Mitspieler</span>
-        <span style="font-size:10px;color:#6c6c70;margin-left:6px">Ausgeblendet = erscheint in keiner Rangliste</span>
+    <div style="background:#fff;border:1px solid #d1d1d6;border-radius:8px;overflow:hidden;margin-bottom:14px">
+      <div style="background:#fff3e0;padding:7px 12px;border-bottom:1px solid #d1d1d6">
+        <span style="font-size:12px;font-weight:600;color:#c05000">Ehemalige Mitglieder</span>
+        <span style="font-size:10px;color:#8a5000;margin-left:6px">ausgeblendet in allen Ranglisten</span>
       </div>
-      <table style="width:100%;border-collapse:collapse">
-        <thead><tr style="background:#fafafa">
-          <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left;width:28px">#</th>
-          <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left">Name</th>
-          <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:center;width:130px">Status</th>
-        </tr></thead>
-        <tbody>${[...t1active, ...t1former].join('')}</tbody>
-      </table>
+      <table style="width:100%;border-collapse:collapse">${tHead1}<tbody>${rowEhemal}</tbody></table>
+    </div>
+
+    <div style="background:#fff;border:1px solid #d1d1d6;border-radius:8px;overflow:hidden;margin-bottom:14px">
+      <div style="background:#f0fff4;padding:7px 12px;border-bottom:1px solid #d1d1d6">
+        <span style="font-size:12px;font-weight:600;color:#1a7a3a">Aktive Mitglieder</span>
+        <span style="font-size:10px;color:#3a7a50;margin-left:6px">erscheinen in allen Ranglisten</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse">${tHead1}<tbody>${rowAktiv||'<tr><td colspan="3" style="padding:10px;font-size:11px;color:#aaa">Keine aktiven Mitglieder</td></tr>'}</tbody></table>
     </div>
 
     <div style="background:#fff;border:1px solid #d1d1d6;border-radius:8px;overflow:hidden">
       <div style="background:#f2f2f7;padding:7px 12px;border-bottom:1px solid #d1d1d6;display:flex;align-items:center">
         <span style="font-size:12px;font-weight:600;color:#1c1c1e">Zusätzliche Spieler</span>
-        <button onclick="cfgExtraAdd()" style="margin-left:auto;font-size:11px;background:#34c759;color:#fff;border:none;border-radius:5px;padding:3px 12px;cursor:pointer">+ Hinzufügen</button>
+        <span style="font-size:10px;color:#6c6c70;margin-left:6px">nicht in SRF-Gruppe</span>
+        <button onclick="cfgExtraAdd()" style="margin-left:auto;font-size:11px;background:#007aff;color:#fff;border:none;border-radius:5px;padding:3px 12px;cursor:pointer">+ Hinzufügen</button>
       </div>
       <table style="width:100%;border-collapse:collapse">
         <thead><tr style="background:#fafafa">
           <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left">Name</th>
           <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left;width:110px">SRF-ID</th>
-          <th style="width:30px"></th>
+          <th style="width:36px"></th>
         </tr></thead>
-        <tbody>${t2rows||'<tr><td colspan="3" style="padding:10px 8px;font-size:11px;color:#aaa">Noch keine Einträge</td></tr>'}</tbody>
+        <tbody>${rowExtra||'<tr><td colspan="3" style="padding:10px;font-size:11px;color:#aaa">Noch keine Einträge</td></tr>'}</tbody>
       </table>
     </div>
   `;
 }
 
-function cfgToggle(name, hide) {
-  if (hide) _cfgHidden.add(name); else _cfgHidden.delete(name);
+function cfgMakeFormer(name) {
+  _cfgFormer.add(name);
   _cfgSave();
-  const span = event.target.nextElementSibling;
-  if (span) { span.textContent = hide?'ausgeblendet':'aktiv'; span.style.color = hide?'#ff3b30':'#34c759'; }
   if (currentTab==='rangliste') calcRanking();
   if (chart) { chart.destroy(); chart=null; }
-  if (currentTab==='rangverl') requestAnimationFrame(()=>{ if(!chart) buildChart(); });
+  renderConfig();
+}
+function cfgMakeActive(name) {
+  _cfgFormer.delete(name);
+  _cfgSave();
+  if (currentTab==='rangliste') calcRanking();
+  if (chart) { chart.destroy(); chart=null; }
+  renderConfig();
 }
 function cfgExtraEdit(i, field, val) { _cfgExtra[i][field]=val; _cfgSave(); }
 function cfgExtraDel(i)  { _cfgExtra.splice(i,1); _cfgSave(); renderConfig(); }
