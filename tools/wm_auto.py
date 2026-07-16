@@ -171,6 +171,8 @@ def _load_members():
     global ZUSATZ_ANTWORTEN
     path = os.path.join(CONFIG_DIR, 'teilnehmer.json')
     if not os.path.exists(path):
+        _auto_update_members()   # find_gruppe.py automatisch ausführen
+    if not os.path.exists(path):
         raise FileNotFoundError(
             f'Teilnehmerliste fehlt: {path}\n'
             f'Bitte config/find_gruppe.py ausführen um die Teilnehmer zu laden.'
