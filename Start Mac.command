@@ -103,5 +103,6 @@ if [ -f "web/index.html" ]; then
     open "web/index.html"
 fi
 
-echo "Drücke Enter zum Schliessen …"
-read -r
+echo "   (Fenster schliesst in 5 Sekunden …)"
+sleep 5
+osascript -e 'tell application "Terminal" to close front window' 2>/dev/null || true
