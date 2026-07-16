@@ -139,29 +139,60 @@ def _auto_update_members():
         sys.exit(1)
     print('✅  Mitglieder aktualisiert.')
 
+def _parse_ausschluss():
+    """Liest config/ausschluss.txt. Unterstützt 'ID;Name' und 'Name'-Format.
+    Gibt (excluded_ids: set, excluded_names: set) zurück."""
+    ausschluss_path = os.path.join(CONFIG_DIR, 'ausschluss.txt')
+    excl_ids, excl_names = set(), set()
+    if os.path.exists(ausschluss_path):
+        with open(ausschluss_path, encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if ';' in line:
+                    parts = line.split(';', 1)
+                    excl_ids.add(parts[0].strip())
+                    excl_names.add(parts[1].strip().lower())
+                else:
+                    excl_names.add(line.lower())
+    return excl_ids, excl_names
+
 def _load_members():
-    """Lädt Teilnehmerliste aus config/teilnehmer.json (nicht hardcodiert).
-    Mitglieder in config/ausschluss.txt werden ignoriert (ein Name pro Zeile)."""
-    # Auto-Update deaktiviert: teilnehmer.json wird manuell gepflegt
-    # _auto_update_members()
+    """Lädt Teilnehmerliste aus config/teilnehmer.json + data/zusatz_spieler.csv.
+    Ausschluss per ID (primär) oder Name (Fallback) via config/ausschluss.txt."""
     path = os.path.join(CONFIG_DIR, 'teilnehmer.json')
     if not os.path.exists(path):
         raise FileNotFoundError(
             f'Teilnehmerliste fehlt: {path}\n'
-            f'Bitte config/teilnehmer.json mit Feldern id/name/rank erstellen.\n'
-            f'Beispiel: [{{"id":"abc12","name":"Max M","rank":1}}]'
+            f'Bitte config/find_gruppe.py ausführen um die Teilnehmer zu laden.'
         )
     with open(path, encoding='utf-8') as f:
         members = json.load(f)
-    # Ausschluss-Liste prüfen
-    ausschluss_path = os.path.join(CONFIG_DIR, 'ausschluss.txt')
-    if os.path.exists(ausschluss_path):
-        with open(ausschluss_path, encoding='utf-8') as f:
-            excluded = {l.strip().lower() for l in f if l.strip() and not l.startswith('#')}
-        members = [m for m in members if m['name'].lower() not in excluded]
-        if excluded:
-            print(f'   Ausgeschlossen: {", ".join(sorted(excluded))}')
-    print(f'   Teilnehmer geladen: {len(members)} aus config/teilnehmer.json')
+
+    # Ausschluss per ID (primär) oder Name (Fallback)
+    excl_ids, excl_names = _parse_ausschluss()
+    def is_excluded(m):
+        return m['id'] in excl_ids or m['name'].lower() in excl_names
+    members = [m for m in members if not is_excluded(m)]
+
+    # Zusätzliche Spieler aus data/zusatz_spieler.csv hinzufügen
+    extra_path = os.path.join(BASE_DIR, 'data', 'zusatz_spieler.csv')
+    if os.path.exists(extra_path):
+        existing_ids = {m['id'] for m in members}
+        with open(extra_path, encoding='utf-8') as f:
+            for row in csv.DictReader(f):
+                eid  = row.get('id',   '').strip()
+                ename = row.get('name', '').strip()
+                if eid and ename and eid not in existing_ids:
+                    if eid not in excl_ids and ename.lower() not in excl_names:
+                        members.append({'id': eid, 'name': ename, 'rank': len(members) + 1})
+                        existing_ids.add(eid)
+
+    if excl_ids or excl_names:
+        all_excl = sorted(excl_names | excl_ids)
+        print(f'   Ausgeschlossen: {", ".join(all_excl)}')
+    print(f'   Teilnehmer geladen: {len(members)} (inkl. Zusatzspieler)')
     return members
 
 MEMBERS = _load_members()
@@ -1095,14 +1126,21 @@ def load_config_csvs():
     Gibt JSON-Strings zurück, die in die HTML-Marker injiziert werden."""
     import json as _json
 
-    # Ehemalige aus bestehender ausschluss.txt lesen
+    # Ehemalige aus ausschluss.txt lesen (Format: 'ID;Name' oder 'Name')
     ausschluss_path = os.path.join(CONFIG_DIR, 'ausschluss.txt')
     hidden = []
     if os.path.exists(ausschluss_path):
         with open(ausschluss_path, encoding='utf-8') as f:
             for line in f:
-                name = line.strip()
-                if name and not name.startswith('#'):
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if ';' in line:
+                    # ID;Name → nur Name extrahieren
+                    name = line.split(';', 1)[1].strip()
+                else:
+                    name = line
+                if name:
                     hidden.append(name)
 
     # Zusatzspieler aus data/zusatz_spieler.csv
