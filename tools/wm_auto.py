@@ -475,132 +475,128 @@ _FINALS_POS = {
     ],
 }
 
-ZUSATZ_CSV = os.path.join(DATA_DIR, f'{KUERZEL}_Zusatzfragen.csv')
+# Zusatzfragen-Punkte werden lokal aus Spieldaten berechnet (kein CSV mehr)
 ZUSATZ_KEYS = ['wm', 'ch', 't_ch', 't_k', 'nullnull']
 ZUSATZ_PTS_KEYS = ['p_wm', 'p_ch', 'p_t_ch', 'p_t_k', 'p_nullnull']
 
-def load_zusatzfragen():
-    """Liest WM_Zusatzfragen.csv und gibt {name: {wm,ch,...,punkte}} zurück."""
-    if not os.path.exists(ZUSATZ_CSV):
-        return None  # noch nicht vorhanden
-    result = {}
-    with open(ZUSATZ_CSV, encoding='utf-8-sig') as f:
-        reader = csv.DictReader(f, delimiter=';')
-        for row in reader:
-            name = row.get('Name', '').strip()
-            if not name: continue
-            entry = {}
-            for k in ZUSATZ_KEYS:
-                v = row.get(k, '').strip()
-                # Zahlen als int speichern
-                try:    entry[k] = int(v)
-                except: entry[k] = v if v else None
-            for k in ZUSATZ_PTS_KEYS:
-                try:    entry[k] = int(row.get(k, 0) or 0)
-                except: entry[k] = 0
-            try:    entry['punkte'] = int(row.get('punkte', 0) or 0)
-            except: entry['punkte'] = 0
-            result[name] = entry
-    # Prüfen ob echte Antworten vorhanden (nicht nur None/leere Werte)
-    has_real = any(
-        v not in (None, '', 0) and k not in ('punkte',)
-        for entry in result.values()
-        for k, v in entry.items()
-    )
-    if not has_real:
-        print('   ℹ️  WM_Zusatzfragen.csv enthält nur leere Werte – wird neu abgerufen.')
-        return None
-    print(f'   ✅ WM_Zusatzfragen.csv geladen ({len(result)} Einträge)')
-    return result
+def _normalize_runde(runde):
+    """Normalisiert Runden-Bezeichnungen für Vergleich (verschiedene Formate)."""
+    if not runde:
+        return ''
+    r = str(runde).lower().strip().replace('-', '').replace(' ', '')
+    if any(x in r for x in ['halbfinal', '1/2', 'semifinal']):  return 'halbfinale'
+    if any(x in r for x in ['viertelfinal', '1/4', 'quarterfinal']): return 'viertelfinale'
+    if any(x in r for x in ['achtelfinal', '1/8', 'roundof16']): return 'achtelfinale'
+    if any(x in r for x in ['sechzehntel', '1/16', 'roundof32']): return 'sechzehntelfinale'
+    if any(x in r for x in ['zweiunddrei', '1/32', 'roundof64']): return 'zweiunddreissigstefinale'
+    if r in ('final', 'finale', 'f', '1/1'):                    return 'finale'
+    if any(x in r for x in ['gruppe', 'vorrunde', 'group']):    return 'gruppenphase'
+    return r
 
-def save_zusatzfragen(zusatz_data):
-    """Speichert Zusatzfragen-Dict als WM_Zusatzfragen.csv.
-    Speichert NUR wenn mindestens ein echter (nicht-null) Wert vorhanden ist."""
-    if not zusatz_data:
-        return
-    # Prüfen ob echte Antworten vorhanden (nicht nur None-Werte)
-    has_real = any(
-        v not in (None, '') and k != 'punkte'
-        for entry in zusatz_data.values()
-        for k, v in entry.items()
-    )
-    if not has_real:
-        print('   ℹ️  Zusatzfragen: nur leere Werte – CSV wird nicht gespeichert.')
-        return
-    fieldnames = ['Name'] + ZUSATZ_KEYS + ZUSATZ_PTS_KEYS + ['punkte']
-    with open(ZUSATZ_CSV, 'w', newline='', encoding='utf-8-sig') as f:
-        w = csv.DictWriter(f, fieldnames=fieldnames, delimiter=';',
-                           extrasaction='ignore')
-        w.writeheader()
-        for name, vals in zusatz_data.items():
-            row = {'Name': name, 'punkte': vals.get('punkte', 0)}
-            for k in ZUSATZ_KEYS:
-                row[k] = vals.get(k, '')
-            for k in ZUSATZ_PTS_KEYS:
-                row[k] = vals.get(k, 0)
-            w.writerow(row)
-    print(f'   ✅ WM_Zusatzfragen.csv gespeichert ({len(zusatz_data)} Einträge)')
+def calc_zusatz_punkte(games_meta):
+    """Berechnet Bonus-Punkte für alle Spieler aus ZUSATZ_ANTWORTEN (teilnehmer.json).
+    Richtige Antworten werden aus games_meta + Torschützenliste abgeleitet.
+    Punkte: wm=50, ch/t_ch/t_k/nullnull=20 je."""
+    if not ZUSATZ_ANTWORTEN:
+        print('   (keine Zusatzantworten in teilnehmer.json – übersprungen)')
+        return {}
 
-def fetch_zusatzfragen(session):
-    """Holt Zusatzfragen-Punkte von SRF (Runde 40) und kombiniert sie mit
-    den Antworten aus ZUSATZ_ANTWORTEN (teilnehmer.json).
-    Fallback: falls keine gespeicherten Antworten, holt beides von SRF.
-    Gibt {name: {wm, ch, t_ch, t_k, nullnull, p_wm, ..., punkte}} zurück."""
-    FIELD_KEYS = ['wm', 'ch', 't_ch', 't_k', 'nullnull']
+    PUNKTE = {'wm': 50, 'ch': 20, 't_ch': 20, 't_k': 20, 'nullnull': 20}
+    CH_NAMES = ['schweiz', 'switzerland', 'suisse', 'svizzera']
+    RUNDEN_ORDER = ['gruppenphase', 'zweiunddreissigstefinale', 'sechzehntelfinale',
+                    'achtelfinale', 'viertelfinale', 'halbfinale', 'finale']
+
+    sorted_games = sorted(games_meta.values(), key=lambda g: g['event_date'])
+
+    # Weltmeister: Sieger des Finales
+    weltmeister = None
+    for g in sorted_games:
+        if _normalize_runde(g.get('roundName','')) == 'finale':
+            fr = g.get('final_results')
+            if fr and len(fr) >= 2:
+                teams = g['match'].split(' vs ')
+                if len(teams) == 2:
+                    if fr[0] > fr[1]: weltmeister = teams[0].strip()
+                    elif fr[1] > fr[0]: weltmeister = teams[1].strip()
+
+    # Schweiz: höchste erreichte Runde
+    ch_runde = 'gruppenphase'
+    for g in sorted_games:
+        if any(n in g['match'].lower() for n in CH_NAMES):
+            rn = _normalize_runde(g.get('roundName', ''))
+            if rn in RUNDEN_ORDER and RUNDEN_ORDER.index(rn) > RUNDEN_ORDER.index(ch_runde):
+                ch_runde = rn
+
+    # Tore Schweiz: alle Tore in allen Spielen
+    ch_goals = 0
+    for g in sorted_games:
+        fr = g.get('final_results')
+        if not fr or len(fr) < 2: continue
+        parts = g['match'].split(' vs ')
+        if len(parts) != 2: continue
+        t1, t2 = parts[0].strip().lower(), parts[1].strip().lower()
+        if any(n in t1 for n in CH_NAMES): ch_goals += fr[0]
+        elif any(n in t2 for n in CH_NAMES): ch_goals += fr[1]
+
+    # 0:0 Spiele
+    nullnull = sum(1 for g in sorted_games
+                   if g.get('final_results') and g['final_results'] == [0, 0])
+
+    # Torschützenkönig: Tore des Führenden
+    scorers, _ = fetch_torschuetzen()
+    t_k = scorers[0]['tore'] if scorers else None
+
+    print(f'   Richtige Antworten: WM={weltmeister or "offen"}, '
+          f'CH={ch_runde}, Tore CH={ch_goals}, '
+          f'Torschützenkönig={t_k or "offen"}, 0:0={nullnull}')
+
+    # Punkte pro Spieler berechnen
     zusatz = {}
+    for name, ant in ZUSATZ_ANTWORTEN.items():
+        entry = dict(ant)
+        total = 0
 
-    for m in MEMBERS:
+        # Weltmeister (50 Punkte)
+        p = 0
+        if weltmeister and ant.get('wm'):
+            if str(ant['wm']).strip().lower() == weltmeister.strip().lower():
+                p = PUNKTE['wm']
+        entry['p_wm'] = p; total += p
+
+        # Schweiz Runde (20 Punkte)
+        p = 0
+        if ant.get('ch') and _normalize_runde(ant['ch']) == ch_runde:
+            p = PUNKTE['ch']
+        entry['p_ch'] = p; total += p
+
+        # Tore Schweiz (20 Punkte)
+        p = 0
         try:
-            url  = f'{BASE_URL}/users/{m["id"]}/round/40'
-            resp = session.get(url, timeout=20)
-            if resp.status_code != 200:
-                print(f'  ⚠️  {m["name"]}: HTTP {resp.status_code}')
-                continue
-            doc  = BeautifulSoup(resp.text, 'html.parser')
-            bets = doc.find_all(attrs={'data-react-class': 'TextSelection'})
+            if ant.get('t_ch') is not None and int(ant['t_ch']) == ch_goals:
+                p = PUNKTE['t_ch']
+        except (ValueError, TypeError): pass
+        entry['p_t_ch'] = p; total += p
 
-            # Gespeicherte Antworten aus teilnehmer.json (primär)
-            stored = ZUSATZ_ANTWORTEN.get(m['name'], {})
+        # Tore Torschützenkönig (20 Punkte)
+        p = 0
+        try:
+            if t_k is not None and ant.get('t_k') is not None and int(ant['t_k']) == t_k:
+                p = PUNKTE['t_k']
+        except (ValueError, TypeError): pass
+        entry['p_t_k'] = p; total += p
 
-            if not bets and not stored:
-                print(f'  ⚠️  {m["name"]}: keine Daten gefunden (übersprungen)')
-                continue
+        # Anzahl 0:0 (20 Punkte)
+        p = 0
+        try:
+            if ant.get('nullnull') is not None and int(ant['nullnull']) == nullnull:
+                p = PUNKTE['nullnull']
+        except (ValueError, TypeError): pass
+        entry['p_nullnull'] = p; total += p
 
-            entry = dict(stored)  # Antworten aus JSON übernehmen
-            total_score = 0
+        entry['punkte'] = total
+        zusatz[name] = entry
 
-            for i, el in enumerate(bets):
-                bet = json.loads(el.get('data-react-props', '{}')).get('bet', {})
-                score = int(bet.get('total_score') or 0)
-                total_score += score
-                key     = FIELD_KEYS[i] if i < len(FIELD_KEYS) else f'q{i}'
-                pts_key = f'p_{key}' if key in FIELD_KEYS else f'p_q{i}'
-                entry[pts_key] = score
-                # Antwort: aus JSON (primär) oder SRF (Fallback)
-                if key not in entry:
-                    picks   = bet.get('picks', [])
-                    ans_map = {a['id']: a['name'] for a in bet.get('answers', [])}
-                    entry[key] = ans_map.get(picks[0]) if picks else None
-
-            if entry:
-                entry['punkte'] = total_score
-                # Sicherstellen dass alle Punkt-Keys existieren
-                for k in FIELD_KEYS:
-                    entry.setdefault(f'p_{k}', 0)
-                zusatz[m['name']] = entry
-            elif stored:
-                # Antworten vorhanden, aber noch keine SRF-Auswertung
-                entry['punkte'] = 0
-                for k in FIELD_KEYS:
-                    entry.setdefault(k, None)
-                    entry.setdefault(f'p_{k}', 0)
-                zusatz[m['name']] = entry
-
-        except Exception as e:
-            print(f'  ⚠️  Zusatzfragen {m["name"]}: {e}')
-        time.sleep(0.1)
-
-    print(f'   ✅ Zusatzfragen: {len(zusatz)}/{len(MEMBERS)} Einträge geladen')
+    print(f'   ✅ Zusatzpunkte berechnet: {len(zusatz)} Spieler')
     return zusatz
 
 
@@ -1410,20 +1406,8 @@ def main():
     print(f'→ Daten abrufen ({len(MEMBERS)} Spieler × {len(rounds)} Runden) …')
     games_meta, player_data = fetch_all(session, rounds)
 
-    print('→ Zusatzfragen …')
-    zusatz_data = load_zusatzfragen()
-    if zusatz_data is None:
-        print('   WM_Zusatzfragen.csv fehlt – hole von SRF …')
-        zusatz_data = fetch_zusatzfragen(session)
-        save_zusatzfragen(zusatz_data)
-    elif zusatz_data and not any('p_wm' in v for v in zusatz_data.values()):
-        print('   WM_Zusatzfragen.csv ohne Einzelpunkte – hole neu von SRF …')
-        fresh = fetch_zusatzfragen(session)
-        if fresh: zusatz_data = fresh; save_zusatzfragen(zusatz_data)   # speichert nur wenn echte Daten vorhanden
-        if not zusatz_data:
-            zusatz_data = {}
-    else:
-        print('   (aus CSV, kein Abruf nötig)')
+    print('→ Zusatzfragen auswerten …')
+    zusatz_data = calc_zusatz_punkte(games_meta)
 
     print('→ CSVs schreiben …')
     rang_path  = os.path.join(DATA_DIR, f'{KUERZEL}_Rangverlauf_{today}.csv')
