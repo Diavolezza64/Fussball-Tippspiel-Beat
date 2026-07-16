@@ -89,9 +89,21 @@ while IFS= read -r REPO || [ -n "$REPO" ]; do
         printf "config/github_token.txt\nconfig/teilnehmer.json\n" > .gitignore
     fi
 
-    # WM_Rangverlauf.html (Template mit aktuellem Layout)
+    # WM_Rangverlauf.html (Layout aktualisieren, Config-Daten leeren für Satellite)
     if [ -f "$DIR/web/WM_Rangverlauf.html" ]; then
-        cp "$DIR/web/WM_Rangverlauf.html" "web/WM_Rangverlauf.html" 2>/dev/null && UPDATED=$((UPDATED + 1))
+        SRC="$DIR/web/WM_Rangverlauf.html"
+        python3 - "$SRC" "web/WM_Rangverlauf.html" <<'PYEOF'
+import re, sys
+src, dst = sys.argv[1], sys.argv[2]
+with open(src, encoding='utf-8') as f:
+    html = f.read()
+html = re.sub(r'/\*CFG_HIDDEN\*/.*?/\*END_CFG_HIDDEN\*/', '/*CFG_HIDDEN*/null/*END_CFG_HIDDEN*/', html, flags=re.DOTALL)
+html = re.sub(r'/\*CFG_EXTRA\*/.*?/\*END_CFG_EXTRA\*/', '/*CFG_EXTRA*/[]/*END_CFG_EXTRA*/', html, flags=re.DOTALL)
+with open(dst, 'w', encoding='utf-8') as f:
+    f.write(html)
+PYEOF
+        UPDATED=$((UPDATED + 1))
+        echo "   ✅ WM_Rangverlauf.html (Config geleert)"
     fi
 
     # Start PC.bat (identisch wie bei Beat – lädt von Master-Repo)

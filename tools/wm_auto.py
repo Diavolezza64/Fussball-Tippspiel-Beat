@@ -1362,17 +1362,24 @@ def _git_push_if_setup():
     if not os.path.exists(git_dir):
         return  # Kein git-Repo → überspringen
 
-    # Root index.html aus WM_Rangverlauf.html erzeugen (private Daten entfernen)
+    # Root index.html + web/WM_Rangverlauf.html ohne private Config-Daten erzeugen
     html_src  = os.path.join(WEB_DIR, TURNIER.get('html_datei', 'WM_Rangverlauf.html'))
     index_dst = os.path.join(BASE_DIR, 'index.html')
+    html_full_backup = None  # lokale Version mit Config wiederherstellen nach Push
     if os.path.exists(html_src):
         try:
             with open(html_src, encoding='utf-8') as f:
-                html = strip_config_from_html(f.read())
+                html_full_backup = f.read()
+            html_stripped = strip_config_from_html(html_full_backup)
+            # index.html (Root) – Config geleert
             with open(index_dst, 'w', encoding='utf-8') as f:
-                f.write(html)
+                f.write(html_stripped)
+            # web/WM_Rangverlauf.html – für GitHub ebenfalls Config leeren
+            with open(html_src, 'w', encoding='utf-8') as f:
+                f.write(html_stripped)
         except Exception as e:
-            print(f'   ⚠️  index.html konnte nicht erzeugt werden: {e}')
+            print(f'   ⚠️  HTML konnte nicht bereinigt werden: {e}')
+            html_full_backup = None
 
     # Token + Repo-URL setzen falls vorhanden (für Daniel/andere)
     if os.path.exists(token_file) and os.path.exists(repo_file):
@@ -1398,6 +1405,14 @@ def _git_push_if_setup():
             print('   ✅ GitHub aktualisiert')
         else:
             print('   ⚠️  GitHub-Push fehlgeschlagen')
+
+    # Lokale web/WM_Rangverlauf.html mit Config wiederherstellen
+    if html_full_backup is not None and os.path.exists(html_src):
+        try:
+            with open(html_src, 'w', encoding='utf-8') as f:
+                f.write(html_full_backup)
+        except Exception:
+            pass
 
 
 def main():
