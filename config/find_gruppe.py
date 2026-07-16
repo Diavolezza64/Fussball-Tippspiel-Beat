@@ -417,10 +417,51 @@ def debug_url(session, url):
     else:
         print('\n(Keine Gruppen-Links auf dieser Seite gefunden)')
 
+# ── Zusatzfragen-Antworten von SRF holen ─────────────────────────
+_ZUSATZ_FIELD_KEYS = ['wm', 'ch', 't_ch', 't_k', 'nullnull']
+
+def fetch_zusatz_antworten(session, members):
+    """Holt Zusatzfragen-Antworten von SRF (Runde 40) für alle Member.
+    Gibt {id: {wm, ch, t_ch, t_k, nullnull}} zurück."""
+    print('→ Zusatzfragen-Antworten von SRF laden …')
+    result = {}
+    for m in members:
+        try:
+            url = f'{BASE_URL}/users/{m["id"]}/round/40'
+            resp = session.get(url, timeout=20)
+            if resp.status_code != 200:
+                continue
+            doc = BeautifulSoup(resp.text, 'html.parser')
+            bets = doc.find_all(attrs={'data-react-class': 'TextSelection'})
+            if not bets:
+                continue
+            answers = {}
+            for i, el in enumerate(bets):
+                bet = json.loads(el.get('data-react-props', '{}')).get('bet', {})
+                picks = bet.get('picks', [])
+                ans_map = {a['id']: a['name'] for a in bet.get('answers', [])}
+                answer = ans_map.get(picks[0]) if picks else None
+                key = _ZUSATZ_FIELD_KEYS[i] if i < len(_ZUSATZ_FIELD_KEYS) else f'q{i}'
+                answers[key] = answer
+            if answers:
+                result[m['id']] = answers
+        except Exception as e:
+            print(f'   ⚠️  {m["name"]}: {e}')
+        time.sleep(0.1)
+    print(f'   ✅ Zusatzfragen: {len(result)}/{len(members)} Antworten gespeichert')
+    return result
+
 # ── teilnehmer.json schreiben ────────────────────────────────────
-def save(members):
+def save(members, session=None):
     out = [{'id': m['id'], 'name': m['name'], 'rank': i}
            for i, m in enumerate(members, 1)]
+
+    # Zusatzfragen-Antworten von SRF holen und in JSON einbetten
+    if session:
+        zusatz_by_id = fetch_zusatz_antworten(session, out)
+        for entry in out:
+            if entry['id'] in zusatz_by_id:
+                entry['zusatz'] = zusatz_by_id[entry['id']]
 
     # Zusatzspieler aus data/zusatz_spieler.csv hinzufügen
     zusatz_path = os.path.join(os.path.dirname(CONFIG_DIR), 'data', 'zusatz_spieler.csv')
@@ -494,7 +535,7 @@ def main():
     for m in members_list:
         print(f'  {m["name"]:<32} id: {m["id"]}')
 
-    save(members_list)
+    save(members_list, session=session)
 
 if __name__ == '__main__':
     main()

@@ -139,6 +139,8 @@ def _auto_update_members():
         sys.exit(1)
     print('✅  Mitglieder aktualisiert.')
 
+ZUSATZ_ANTWORTEN = {}  # {name: {wm, ch, t_ch, t_k, nullnull}} – aus teilnehmer.json
+
 def _parse_ausschluss():
     """Liest config/ausschluss.txt. Unterstützt 'ID;Name' und 'Name'-Format.
     Gibt (excluded_ids: set, excluded_names: set) zurück."""
@@ -160,7 +162,9 @@ def _parse_ausschluss():
 
 def _load_members():
     """Lädt Teilnehmerliste aus config/teilnehmer.json + data/zusatz_spieler.csv.
-    Ausschluss per ID (primär) oder Name (Fallback) via config/ausschluss.txt."""
+    Ausschluss per ID (primär) oder Name (Fallback) via config/ausschluss.txt.
+    Zusatzfragen-Antworten werden aus 'zusatz'-Feld in JSON in ZUSATZ_ANTWORTEN gespeichert."""
+    global ZUSATZ_ANTWORTEN
     path = os.path.join(CONFIG_DIR, 'teilnehmer.json')
     if not os.path.exists(path):
         raise FileNotFoundError(
@@ -169,6 +173,12 @@ def _load_members():
         )
     with open(path, encoding='utf-8') as f:
         members = json.load(f)
+
+    # Zusatzfragen-Antworten aus JSON extrahieren
+    for m in members:
+        if m.get('zusatz'):
+            ZUSATZ_ANTWORTEN[m['name']] = dict(m['zusatz'])
+        m.pop('zusatz', None)  # nicht in MEMBERS-Liste behalten
 
     # Ausschluss per ID (primär) oder Name (Fallback)
     excl_ids, excl_names = _parse_ausschluss()
@@ -192,6 +202,8 @@ def _load_members():
     if excl_ids or excl_names:
         all_excl = sorted(excl_names | excl_ids)
         print(f'   Ausgeschlossen: {", ".join(all_excl)}')
+    if ZUSATZ_ANTWORTEN:
+        print(f'   Zusatzfragen-Antworten geladen: {len(ZUSATZ_ANTWORTEN)} Einträge')
     print(f'   Teilnehmer geladen: {len(members)} (inkl. Zusatzspieler)')
     return members
 
@@ -530,9 +542,10 @@ def save_zusatzfragen(zusatz_data):
     print(f'   ✅ WM_Zusatzfragen.csv gespeichert ({len(zusatz_data)} Einträge)')
 
 def fetch_zusatzfragen(session):
-    """Liest Zusatzfragen von SRF (Komponente TextSelection, Runde 40).
-    Struktur: bet.picks[0] = ID, bet.answers = [{id, name}]
-    Gibt {name: {wm, ch, t_ch, t_k, nullnull, punkte}} zurück."""
+    """Holt Zusatzfragen-Punkte von SRF (Runde 40) und kombiniert sie mit
+    den Antworten aus ZUSATZ_ANTWORTEN (teilnehmer.json).
+    Fallback: falls keine gespeicherten Antworten, holt beides von SRF.
+    Gibt {name: {wm, ch, t_ch, t_k, nullnull, p_wm, ..., punkte}} zurück."""
     FIELD_KEYS = ['wm', 'ch', 't_ch', 't_k', 'nullnull']
     zusatz = {}
 
@@ -545,26 +558,44 @@ def fetch_zusatzfragen(session):
                 continue
             doc  = BeautifulSoup(resp.text, 'html.parser')
             bets = doc.find_all(attrs={'data-react-class': 'TextSelection'})
-            if not bets:
-                print(f'  ⚠️  {m["name"]}: keine TextSelection-Komponente gefunden (Seite übersprungen)')
+
+            # Gespeicherte Antworten aus teilnehmer.json (primär)
+            stored = ZUSATZ_ANTWORTEN.get(m['name'], {})
+
+            if not bets and not stored:
+                print(f'  ⚠️  {m["name"]}: keine Daten gefunden (übersprungen)')
                 continue
-            answers = {}
+
+            entry = dict(stored)  # Antworten aus JSON übernehmen
             total_score = 0
+
             for i, el in enumerate(bets):
                 bet = json.loads(el.get('data-react-props', '{}')).get('bet', {})
-                # Antwort-Lookup: picks[0] ist die ID, answers-Liste gibt den Namen
-                picks    = bet.get('picks', [])
-                ans_map  = {a['id']: a['name'] for a in bet.get('answers', [])}
-                answer   = ans_map.get(picks[0]) if picks else None
-                total_score += int(bet.get('total_score') or 0)
-                key = FIELD_KEYS[i] if i < len(FIELD_KEYS) else f'q{i}'
-                answers[key] = answer
-                # Per-Frage Punkte speichern
+                score = int(bet.get('total_score') or 0)
+                total_score += score
+                key     = FIELD_KEYS[i] if i < len(FIELD_KEYS) else f'q{i}'
                 pts_key = f'p_{key}' if key in FIELD_KEYS else f'p_q{i}'
-                answers[pts_key] = int(bet.get('total_score') or 0)
-            if answers:
-                answers['punkte'] = total_score
-                zusatz[m['name']] = answers
+                entry[pts_key] = score
+                # Antwort: aus JSON (primär) oder SRF (Fallback)
+                if key not in entry:
+                    picks   = bet.get('picks', [])
+                    ans_map = {a['id']: a['name'] for a in bet.get('answers', [])}
+                    entry[key] = ans_map.get(picks[0]) if picks else None
+
+            if entry:
+                entry['punkte'] = total_score
+                # Sicherstellen dass alle Punkt-Keys existieren
+                for k in FIELD_KEYS:
+                    entry.setdefault(f'p_{k}', 0)
+                zusatz[m['name']] = entry
+            elif stored:
+                # Antworten vorhanden, aber noch keine SRF-Auswertung
+                entry['punkte'] = 0
+                for k in FIELD_KEYS:
+                    entry.setdefault(k, None)
+                    entry.setdefault(f'p_{k}', 0)
+                zusatz[m['name']] = entry
+
         except Exception as e:
             print(f'  ⚠️  Zusatzfragen {m["name"]}: {e}')
         time.sleep(0.1)
