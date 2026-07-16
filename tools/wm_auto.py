@@ -211,6 +211,7 @@ def _load_members():
     print(f'   Teilnehmer geladen: {len(members)} (inkl. Zusatzspieler)')
     return members
 
+_auto_update_members()
 MEMBERS = _load_members()
 
 # ── Abhängigkeiten installieren ───────────────────────────────
