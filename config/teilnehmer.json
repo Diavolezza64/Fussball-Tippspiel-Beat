@@ -38,6 +38,13 @@
   {
     "id": "oj5kA",
     "name": "Röle A",
-    "rank": 4
+    "rank": 4,
+    "zusatz": {
+      "wm": "Frankreich",
+      "ch": "Viertelfinal",
+      "t_ch": "14",
+      "t_k": "9",
+      "nullnull": "mehr als 15"
+    }
   }
 ]
