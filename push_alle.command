@@ -34,9 +34,9 @@ if [ ! -f "$SATELLITES_FILE" ]; then
     echo ""; echo "Drücke Enter zum Schliessen …"; read -r; exit 0
 fi
 
-# Allgemeine Files – KEIN wm_auto.py (bleibt satellite-spezifisch)
-# Keine Config-Files (teilnehmer.json, gruppen.txt etc.)
-TOOL_FILES="wm_chart.py gen_rangliste.py debug_zusatz.py fetch_em_archiv.py fetch_wm_archiv.py wm2026_squads.py find_gruppe.py"
+# Allgemeine Tool-Files (inkl. wm_auto.py – GITHUB_REPO kommt aus config/github_repo.txt)
+# Keine persönlichen Config-Files (teilnehmer.json, gruppen.txt, github_token.txt etc.)
+TOOL_FILES="wm_chart.py gen_rangliste.py debug_zusatz.py fetch_em_archiv.py fetch_wm_archiv.py wm2026_squads.py find_gruppe.py wm_auto.py"
 
 TOTAL=0
 FAILED=0
@@ -74,9 +74,22 @@ while IFS= read -r REPO || [ -n "$REPO" ]; do
         cp "$DIR/config/find_gruppe.py" "config/find_gruppe.py" 2>/dev/null && UPDATED=$((UPDATED + 1))
     fi
 
+    # config/github_repo.txt (satellite-spezifisch – nur setzen wenn fehlt)
+    if [ ! -f "config/github_repo.txt" ]; then
+        echo -n "$REPO" > "config/github_repo.txt"
+        UPDATED=$((UPDATED + 1))
+        echo "   ✅ config/github_repo.txt gesetzt: $REPO"
+    fi
+
     # WM_Rangverlauf.html (Template mit aktuellem Layout)
     if [ -f "$DIR/web/WM_Rangverlauf.html" ]; then
         cp "$DIR/web/WM_Rangverlauf.html" "web/WM_Rangverlauf.html" 2>/dev/null && UPDATED=$((UPDATED + 1))
+    fi
+
+    # Start PC.bat (identisch wie bei Beat – lädt von Master-Repo)
+    if [ -f "$DIR/Start PC.bat" ]; then
+        cp "$DIR/Start PC.bat" "Start PC.bat" 2>/dev/null && UPDATED=$((UPDATED + 1))
+        echo "   ✅ Start PC.bat aktualisiert"
     fi
 
     # Start Mac.command aktualisieren (inkl. config/find_gruppe.py Download)
@@ -109,7 +122,7 @@ else
 fi
 
 echo "→ Code-Update vom Master …"
-TOOLS="wm_chart.py gen_rangliste.py debug_zusatz.py fetch_em_archiv.py fetch_wm_archiv.py wm2026_squads.py"
+TOOLS="wm_auto.py wm_chart.py gen_rangliste.py debug_zusatz.py fetch_em_archiv.py fetch_wm_archiv.py wm2026_squads.py"
 UPDATED=0
 for f in $TOOLS; do
     if curl -sf --max-time 15 "$BASE/tools/$f" -o "$DIR/tools/$f.tmp" 2>/dev/null; then

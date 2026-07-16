@@ -120,6 +120,8 @@ for %%f in (wm_auto.py wm_chart.py gen_rangliste.py debug_zusatz.py fetch_em_arc
     curl -sf --max-time 15 "!UPDATE_BASE!/tools/%%f" -o "tools\%%f" >nul 2>&1
     if !errorlevel!==0 echo   OK: %%f
 )
+curl -sf --max-time 15 "!UPDATE_BASE!/config/find_gruppe.py" -o "config\find_gruppe.py" >nul 2>&1
+if !errorlevel!==0 echo   OK: config\find_gruppe.py
 curl -sf --max-time 30 "!UPDATE_BASE!/web/WM_Rangverlauf.html" -o "web\WM_Rangverlauf.html" >nul 2>&1
 if !errorlevel!==0 echo   OK: WM_Rangverlauf.html
 curl -sf --max-time 15 "!UPDATE_BASE!/web/index.html" -o "web\index.html" >nul 2>&1
