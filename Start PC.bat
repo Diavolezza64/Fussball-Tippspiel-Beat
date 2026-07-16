@@ -102,18 +102,27 @@ goto done
 :run_python
 echo Python: %PYTHON_CMD%
 
-:: Auto-Update: neueste Code-Version laden (nur wenn config\update_source.txt vorhanden)
+:: Auto-Update: neueste Code-Version laden
+set FALLBACK_BASE=https://raw.githubusercontent.com/Diavolezza64/Fussball-Tippspiel-Beat/main
+set UPDATE_BASE=%FALLBACK_BASE%
 if exist "config\update_source.txt" (
-    set /p UPDATE_BASE=<"config\update_source.txt"
-    echo Aktualisiere Code von GitHub ...
-    for %%f in (wm_auto.py wm_chart.py gen_rangliste.py debug_zusatz.py fetch_em_archiv.py fetch_wm_archiv.py wm2026_squads.py) do (
-        curl -sf --max-time 15 "!UPDATE_BASE!/tools/%%f" -o "tools\%%f" >nul 2>&1
-        if !errorlevel!==0 echo   OK: %%f
+    set /p FILE_BASE=<"config\update_source.txt"
+    echo !FILE_BASE! | findstr /B "https://" >nul 2>&1
+    if !errorlevel!==0 (
+        set UPDATE_BASE=!FILE_BASE!
+    ) else (
+        echo    (update_source.txt ungueltig - setze Standard-URL)
+        echo %FALLBACK_BASE%> "config\update_source.txt"
     )
-    curl -sf --max-time 30 "!UPDATE_BASE!/web/WM_Rangverlauf.html" -o "web\WM_Rangverlauf.html" >nul 2>&1
-    if !errorlevel!==0 echo   OK: WM_Rangverlauf.html
-    echo.
 )
+echo Aktualisiere Code von GitHub ...
+for %%f in (wm_auto.py wm_chart.py gen_rangliste.py debug_zusatz.py fetch_em_archiv.py fetch_wm_archiv.py wm2026_squads.py) do (
+    curl -sf --max-time 15 "!UPDATE_BASE!/tools/%%f" -o "tools\%%f" >nul 2>&1
+    if !errorlevel!==0 echo   OK: %%f
+)
+curl -sf --max-time 30 "!UPDATE_BASE!/web/WM_Rangverlauf.html" -o "web\WM_Rangverlauf.html" >nul 2>&1
+if !errorlevel!==0 echo   OK: WM_Rangverlauf.html
+echo.
 
 %PYTHON_CMD% tools\wm_auto.py
 
