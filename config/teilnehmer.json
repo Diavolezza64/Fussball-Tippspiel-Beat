@@ -2,17 +2,38 @@
   {
     "id": "N9eBa",
     "name": "Emanuel C",
-    "rank": 1
+    "rank": 1,
+    "zusatz": {
+      "wm": "Spanien",
+      "ch": "Viertelfinal",
+      "t_ch": "9",
+      "t_k": "8",
+      "nullnull": "8"
+    }
   },
   {
     "id": "20zW9",
     "name": "Fabrice E",
-    "rank": 2
+    "rank": 2,
+    "zusatz": {
+      "wm": "Spanien",
+      "ch": "Achtelfinal",
+      "t_ch": "7",
+      "t_k": "6",
+      "nullnull": "12"
+    }
   },
   {
     "id": "BLA3E",
     "name": "Rafael C",
-    "rank": 3
+    "rank": 3,
+    "zusatz": {
+      "wm": "Spanien",
+      "ch": "Achtelfinal",
+      "t_ch": "7",
+      "t_k": "8",
+      "nullnull": "9"
+    }
   },
   {
     "id": "oj5kA",
