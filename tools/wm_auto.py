@@ -546,9 +546,13 @@ def calc_zusatz_punkte(games_meta):
     scorers, _ = fetch_torschuetzen()
     t_k = scorers[0]['tore'] if scorers else None
 
-    print(f'   Richtige Antworten: WM={weltmeister or "offen"}, '
+    # Finale gespielt? Nur dann WM, Torschützenkönig und 0:0 auswerten
+    final_played = weltmeister is not None
+
+    print(f'   Richtige Antworten: WM={weltmeister or "offen (Finale ausstehend)"}, '
           f'CH={ch_runde}, Tore CH={ch_goals}, '
-          f'Torschützenkönig={t_k or "offen"}, 0:0={nullnull}')
+          f'Torschützenkönig={t_k or "offen"} ({"final" if final_played else "offen"}), '
+          f'0:0={nullnull} ({"final" if final_played else "offen"})')
 
     # Punkte pro Spieler berechnen
     zusatz = {}
@@ -556,20 +560,20 @@ def calc_zusatz_punkte(games_meta):
         entry = dict(ant)
         total = 0
 
-        # Weltmeister (50 Punkte)
+        # Weltmeister (50 Punkte) – nur nach Finale
         p = 0
-        if weltmeister and ant.get('wm'):
+        if final_played and weltmeister and ant.get('wm'):
             if str(ant['wm']).strip().lower() == weltmeister.strip().lower():
                 p = PUNKTE['wm']
         entry['p_wm'] = p; total += p
 
-        # Schweiz Runde (20 Punkte)
+        # Schweiz Runde (20 Punkte) – sofort auswertbar
         p = 0
         if ant.get('ch') and _normalize_runde(ant['ch']) == ch_runde:
             p = PUNKTE['ch']
         entry['p_ch'] = p; total += p
 
-        # Tore Schweiz (20 Punkte)
+        # Tore Schweiz (20 Punkte) – sofort auswertbar
         p = 0
         try:
             if ant.get('t_ch') is not None and int(ant['t_ch']) == ch_goals:
@@ -577,20 +581,22 @@ def calc_zusatz_punkte(games_meta):
         except (ValueError, TypeError): pass
         entry['p_t_ch'] = p; total += p
 
-        # Tore Torschützenkönig (20 Punkte)
+        # Tore Torschützenkönig (20 Punkte) – nur nach Finale
         p = 0
-        try:
-            if t_k is not None and ant.get('t_k') is not None and int(ant['t_k']) == t_k:
-                p = PUNKTE['t_k']
-        except (ValueError, TypeError): pass
+        if final_played:
+            try:
+                if t_k is not None and ant.get('t_k') is not None and int(ant['t_k']) == t_k:
+                    p = PUNKTE['t_k']
+            except (ValueError, TypeError): pass
         entry['p_t_k'] = p; total += p
 
-        # Anzahl 0:0 (20 Punkte)
+        # Anzahl 0:0 (20 Punkte) – nur nach Finale
         p = 0
-        try:
-            if ant.get('nullnull') is not None and int(ant['nullnull']) == nullnull:
-                p = PUNKTE['nullnull']
-        except (ValueError, TypeError): pass
+        if final_played:
+            try:
+                if ant.get('nullnull') is not None and int(ant['nullnull']) == nullnull:
+                    p = PUNKTE['nullnull']
+            except (ValueError, TypeError): pass
         entry['p_nullnull'] = p; total += p
 
         entry['punkte'] = total

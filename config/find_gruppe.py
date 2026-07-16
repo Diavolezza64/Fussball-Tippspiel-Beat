@@ -456,14 +456,8 @@ def save(members, session=None):
     out = [{'id': m['id'], 'name': m['name'], 'rank': i}
            for i, m in enumerate(members, 1)]
 
-    # Zusatzfragen-Antworten von SRF holen und in JSON einbetten
-    if session:
-        zusatz_by_id = fetch_zusatz_antworten(session, out)
-        for entry in out:
-            if entry['id'] in zusatz_by_id:
-                entry['zusatz'] = zusatz_by_id[entry['id']]
-
-    # Zusatzspieler aus data/zusatz_spieler.csv hinzufügen
+    # Zusatzspieler aus data/zusatz_spieler.csv ZUERST hinzufügen
+    # (damit ihre Zusatzfragen im nächsten Schritt mit geholt werden)
     zusatz_path = os.path.join(os.path.dirname(CONFIG_DIR), 'data', 'zusatz_spieler.csv')
     existing_ids = {m['id'] for m in out}
     zusatz_count = 0
@@ -479,6 +473,13 @@ def save(members, session=None):
                     zusatz_count += 1
         if zusatz_count:
             print(f'   + {zusatz_count} Zusatzspieler aus data/zusatz_spieler.csv hinzugefügt')
+
+    # Zusatzfragen-Antworten von SRF holen – jetzt für ALLE (inkl. Zusatzspieler)
+    if session:
+        zusatz_by_id = fetch_zusatz_antworten(session, out)
+        for entry in out:
+            if entry['id'] in zusatz_by_id:
+                entry['zusatz'] = zusatz_by_id[entry['id']]
 
     with open(OUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
