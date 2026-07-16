@@ -124,12 +124,16 @@ def _auto_update_members():
         return
 
     gruppen_mtime    = os.path.getmtime(gruppen_txt)
+    find_mtime       = os.path.getmtime(find_script) if os.path.exists(find_script) else 0
     teilnehmer_mtime = os.path.getmtime(teilnehmer) if os.path.exists(teilnehmer) else 0
 
-    if gruppen_mtime <= teilnehmer_mtime:
+    if gruppen_mtime <= teilnehmer_mtime and find_mtime <= teilnehmer_mtime:
         return  # teilnehmer.json ist aktuell
 
-    print('⚠️  gruppen.txt wurde geändert → Mitglieder werden neu geladen …')
+    if find_mtime > teilnehmer_mtime:
+        print('⚠️  find_gruppe.py wurde aktualisiert → Mitglieder + Zusatzfragen werden neu geladen …')
+    else:
+        print('⚠️  gruppen.txt wurde geändert → Mitglieder werden neu geladen …')
     result = subprocess.run(
         [sys.executable, find_script],
         capture_output=False
