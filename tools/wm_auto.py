@@ -1383,6 +1383,8 @@ def _git_push_if_setup():
             subprocess.run(['git', '-C', BASE_DIR, 'remote', 'set-url', 'origin', remote],
                            capture_output=True)
 
+    subprocess.run(['git', '-C', BASE_DIR, 'pull', '--rebase', '--autostash'],
+                   capture_output=True)
     subprocess.run(['git', '-C', BASE_DIR, 'add', '.'], capture_output=True)
     result = subprocess.run(['git', '-C', BASE_DIR, 'diff', '--cached', '--quiet'],
                             capture_output=True)

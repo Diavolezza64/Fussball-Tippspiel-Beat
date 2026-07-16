@@ -81,6 +81,14 @@ while IFS= read -r REPO || [ -n "$REPO" ]; do
         echo "   ✅ config/github_repo.txt gesetzt: $REPO"
     fi
 
+    # .gitignore: github_token.txt + teilnehmer.json NIE committen
+    if [ -f ".gitignore" ]; then
+        grep -qxF "config/github_token.txt" .gitignore || echo "config/github_token.txt" >> .gitignore
+        grep -qxF "config/teilnehmer.json"  .gitignore || echo "config/teilnehmer.json"  >> .gitignore
+    else
+        printf "config/github_token.txt\nconfig/teilnehmer.json\n" > .gitignore
+    fi
+
     # WM_Rangverlauf.html (Template mit aktuellem Layout)
     if [ -f "$DIR/web/WM_Rangverlauf.html" ]; then
         cp "$DIR/web/WM_Rangverlauf.html" "web/WM_Rangverlauf.html" 2>/dev/null && UPDATED=$((UPDATED + 1))
