@@ -148,8 +148,8 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
       <div style="margin-left:10px;font-size:10px;color:#3a3a3c;border-left:1px solid #d1d1d6;padding-left:10px;display:flex;flex-direction:column;gap:1px">
         <div style="font-size:8px;font-weight:600;color:#6c6c70;text-transform:uppercase;letter-spacing:.4px" title="Tippen basierend auf FIFA-Weltrangliste bzw. Marktwert (transfermarkt.ch) zu Turnierbeginn — Listen wurden nicht mehr aktualisiert">Virtuelle Teilnehmer ℹ</div>
         <div style="display:flex;gap:8px">
-          <label style="cursor:pointer;display:flex;align-items:center;gap:3px"><input type="checkbox" id="cb-virt-fifa" onchange="toggleVirtFifa()"> 🌍 FIFA</label>
-          <label style="cursor:pointer;display:flex;align-items:center;gap:3px"><input type="checkbox" id="cb-virt-mw"   onchange="toggleVirtMW()">   💰 Markt</label>
+          <label style="cursor:pointer;display:flex;align-items:center;gap:3px"><input type="checkbox" id="cb-virt-fifa" onchange="toggleVirtFifa()"> 🌍 FIFA Rang</label>
+          <label style="cursor:pointer;display:flex;align-items:center;gap:3px"><input type="checkbox" id="cb-virt-mw"   onchange="toggleVirtMW()">   💰 Markt Wert</label>
         </div>
       </div>
       <span id="ranking-subtitle" style="font-size:11px;color:#6c6c70;margin-left:auto"></span>
@@ -2100,7 +2100,8 @@ function calcFrequenz(){
   const matrixScores=[...new Set(Object.keys(tipCount))].sort((a,b)=>scoreOrder(a)-scoreOrder(b));
 
   const pMatrix={};
-  if(data) data.members.filter(nm=>!isVirtHidden(nm)).forEach(nm=>{pMatrix[nm]={};});
+  const pHit={};  // exact hits (no normalization): pHit[nm][exactTip]++
+  if(data) data.members.filter(nm=>!isVirtHidden(nm)).forEach(nm=>{pMatrix[nm]={};pHit[nm]={};});
   for(const row of tipData){
     const gameKey=row.datum+'|'+norm(row.spiel);
     if(!validGames.has(gameKey)&&!gip.has(norm(row.spiel)))continue;
@@ -2108,9 +2109,16 @@ function calcFrequenz(){
     if(!showMW  &&row.name===VIRT_MW)  continue;
     const pname=(row.name||'').trim();
     if(!pMatrix[pname])continue;
-    const t=normScore(row.tipp?.trim());
+    const rawTip=(row.tipp||'').trim();
+    const t=normScore(rawTip);
     if(!t)continue;
     pMatrix[pname][t]=(pMatrix[pname][t]||0)+1;
+    // Treffer: exakter Tipp == exaktes Resultat (immer ohne Normalisierung)
+    const rawRes=(row.resultat||'').trim();
+    if(rawTip&&rawRes&&rawTip===rawRes){
+      if(!pHit[pname]) pHit[pname]={};
+      pHit[pname][rawTip]=(pHit[pname][rawTip]||0)+1;
+    }
   }
   const members=data?[...data.members].filter(nm=>!isVirtHidden(nm)):[];
   members.sort((a,b)=>{
@@ -2137,13 +2145,25 @@ function calcFrequenz(){
     <thead><tr>
       ${matTh('Spieler','_name')}${hdrCells}${matTh('Σ','_total')}
     </tr></thead><tbody>`;
+  // Hilfsfunktion: Treffer für einen Spalten-Score (exakt, kein Normalisieren)
+  function hitCount(nm,sc){
+    const ph=pHit[nm]||{};
+    // sc kann normalisiert sein (z.B. '1:2' steht für 1:2 und 2:1)
+    // Wir zählen exakte Treffer für sc selbst + gespiegelten Score
+    const [a,b]=sc.split(':').map(Number);
+    let c=(ph[sc]||0);
+    if(a!==b) c+=(ph[`${b}:${a}`]||0);
+    return c;
+  }
   members.forEach((nm,i)=>{
     const pm=pMatrix[nm]||{};
     const total=matrixScores.reduce((s,sc)=>s+(pm[sc]||0),0);
     const rowBg=i%2===0?'background:#f4f4f8':'';
     const cells=matrixScores.map(sc=>{
       const v=pm[sc]||0;
-      return `<td style="text-align:center;padding:0 3px;border-right:${BORDER}">${v>0?v:''}</td>`;
+      const h=v>0?hitCount(nm,sc):0;
+      const txt=v>0?(h>0?`${v}<span style="color:#888;font-size:7px">(${h})</span>`:`${v}`):'';
+      return `<td style="text-align:center;padding:0 3px;border-right:${BORDER}">${txt}</td>`;
     }).join('');
     matHtml+=`<tr style="${rowBg}">
       <td style="padding:0 6px 0 2px;white-space:nowrap;border-right:${BORDER}">${nm}</td>
