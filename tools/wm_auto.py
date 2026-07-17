@@ -952,17 +952,23 @@ def fetch_srf_leaderboard(session):
         return {}
     base_url = f'https://{TURNIER["srf_host"]}'
     result = {}
+    print(f'   Gruppen-IDs: {group_ids}, Host: {base_url}')
     for group_id in group_ids:
-        for prefix in ('leagues', 'ligen', 'communities', 'groups'):
+        for prefix in ('communities', 'leagues', 'ligen', 'groups'):
             url = f'{base_url}/{prefix}/{group_id}'
             try:
                 resp = session.get(url, timeout=20)
+                print(f'   [{resp.status_code}] {url}')
                 if resp.status_code != 200:
                     continue
                 doc = BeautifulSoup(resp.text, 'html.parser')
+                classes = [el.get('data-react-class') for el in doc.find_all(attrs={'data-react-class': True})]
+                print(f'   React-Klassen: {classes}')
                 for el in doc.find_all(attrs={'data-react-class': True}):
                     try:
                         props = json.loads(el['data-react-props'])
+                        top_keys = list(props.keys()) if isinstance(props, dict) else []
+                        print(f'   [{el.get("data-react-class")}] keys: {top_keys[:10]}')
                         entries = _parse_srf_lb_props(props)
                         if len(entries) >= 3:
                             for pos, e in enumerate(entries, 1):
@@ -973,11 +979,11 @@ def fetch_srf_leaderboard(session):
                             if result:
                                 print(f'   ✅ SRF-Leaderboard: {len(result)} Einträge ({url})')
                                 return result
-                    except Exception:
-                        pass
+                    except Exception as ex:
+                        print(f'   parse ex: {ex}')
                 time.sleep(0.2)
             except Exception as e:
-                print(f'   ⚠️  SRF-Leaderboard {url}: {e}')
+                print(f'   ⚠️  {url}: {e}')
     print('   ⚠️  SRF-Leaderboard: Daten nicht gefunden')
     return {}
 
