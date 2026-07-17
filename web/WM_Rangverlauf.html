@@ -149,10 +149,10 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
       <span id="ranking-subtitle" style="font-size:11px;color:#6c6c70;margin-left:auto"></span>
     </div>
     <div class="tab-bar" id="main-tab-bar">
-      <button class="tab-btn active" onclick="switchTab('rangliste')">🏆 Rangliste</button>
-      <button class="tab-btn" onclick="switchTab('rangverl')">🔀 Rangverlauf</button>
+      <button class="tab-btn active" onclick="switchTab('rangliste')">🏆 Ranglisten</button>
+      <button class="tab-btn" onclick="switchTab('punktevert')">🎯 Punkteverteilung</button>
       <button class="tab-btn" onclick="switchTab('resultate')">📊 Häufigste Tipps</button>
-      <button class="tab-btn" onclick="switchTab('frequenz')">🔢 Tipp-Frequenz</button>
+      <button class="tab-btn" onclick="switchTab('frequenz')">🎲 Tipp-Frequenz</button>
       <button class="tab-btn" onclick="switchTab('vergleich')">⚖️ Vergleich</button>
       <button class="tab-btn" onclick="switchTab('gruppen')">🗂 Gruppen</button>
       <button class="tab-btn" onclick="switchTab('config')">⚙️ Config</button>
@@ -160,17 +160,17 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
     <div id="tab-rangliste" class="tab-content active" style="overflow-y:auto">
       <div class="sub-tab-bar">
         <button class="sub-tab-btn active" onclick="switchRangliste('uebersicht')">📊 SRF-Punkte</button>
+        <button class="sub-tab-btn" onclick="switchRangliste('bonus')">🏅 Bonus</button>
         <button class="sub-tab-btn" onclick="switchRangliste('rangverlauf')">📈 Punkteverlauf</button>
-        <button class="sub-tab-btn" onclick="switchRangliste('10punkte')">🔟 10 Punkte</button>
+        <button class="sub-tab-btn" onclick="switchRangliste('rangverlaufchart')">🎢 Rangverlauf</button>
+        <button class="sub-tab-btn" onclick="switchRangliste('zeitraum')">📅 Zeitraum</button>
+        <button class="sub-tab-btn" onclick="switchRangliste('favoriten')">⭐ Favoriten</button>
+        <span style="display:inline-flex;align-items:center;padding:0 10px;font-size:10px;color:#aaa;font-weight:600;letter-spacing:0.05em;border-left:1px solid #d1d1d6;margin-left:4px;height:26px;user-select:none">Varianten</span>
+        <button class="sub-tab-btn" onclick="switchRangliste('10punkte')">💎 10 Punkte</button>
         <button class="sub-tab-btn" onclick="switchRangliste('10plus')">📈 +10</button>
         <button class="sub-tab-btn" onclick="switchRangliste('x2')">🔥 ×2</button>
-        <button class="sub-tab-btn" onclick="switchRangliste('punkteverteilung')">🎯 Punkteverteilung</button>
-
         <button class="sub-tab-btn" onclick="switchRangliste('peter')">⚽ Peter</button>
         <button class="sub-tab-btn" onclick="switchRangliste('fair')">⚖️ Fair</button>
-        <button class="sub-tab-btn" onclick="switchRangliste('bonus')">🏅 Bonus</button>
-        <button class="sub-tab-btn" onclick="switchRangliste('favoriten')">⭐ Favoriten</button>
-        <button class="sub-tab-btn" onclick="switchRangliste('zeitraum')">📅 Zeitraum</button>
       </div>
       <div style="display:flex;gap:6px;margin:4px 0 2px;align-items:center">
         <button class="export-btn" onclick="exportCurrentCSV()" style="float:none">⬇ CSV</button>
@@ -190,8 +190,18 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
       <div id="sub-10plus" style="display:none">
         <div id="zehnplus-body"></div>
       </div>
-      <div id="sub-punkteverteilung" style="display:none">
-        <div id="punkteverteilung-body"></div>
+      <div id="sub-rangverlaufchart" style="display:none;flex-direction:column">
+        <div id="rv-filter-bar" style="display:flex;flex-wrap:wrap;gap:5px;padding:6px 8px 4px;flex-shrink:0;border-bottom:1px solid #e5e5ea;min-height:32px"></div>
+        <div id="rv-bonus-bar" style="display:flex;gap:4px;padding:4px 8px 3px;flex-shrink:0;border-bottom:1px solid #e5e5ea;align-items:center">
+          <span id="btn-mit-bonus" onclick="setBonusMode(true)"
+            style="cursor:pointer;font-size:11px;padding:2px 10px;border-radius:12px;border:1.5px solid #1a50a0;background:#1a50a0;color:#fff;font-weight:600;user-select:none;transition:all 0.15s">Mit Bonus</span>
+          <span id="btn-ohne-bonus" onclick="setBonusMode(false)"
+            style="cursor:pointer;font-size:11px;padding:2px 10px;border-radius:12px;border:1.5px solid #1a50a0;background:transparent;color:#1a50a0;font-weight:600;user-select:none;transition:all 0.15s">Ohne Bonus</span>
+        </div>
+        <div style="position:relative;height:460px">
+          <div id="hint-rangverl" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#aaa">Wird geladen…</div>
+          <canvas id="myChart"></canvas>
+        </div>
       </div>
       <div id="sub-x2" style="display:none"><div id="x2-body"></div></div>
       <div id="sub-peter" style="display:none"><div id="peter-body"></div></div>
@@ -215,18 +225,9 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
       </div>
     </div>
     <div id="tab-punkte" class="tab-content" style="display:none!important"></div>
-    <div id="tab-rangverl" class="tab-content" style="flex-direction:column">
-      <div id="rv-filter-bar" style="display:flex;flex-wrap:wrap;gap:5px;padding:6px 8px 4px;flex-shrink:0;border-bottom:1px solid #e5e5ea;min-height:32px"></div>
-      <div id="rv-bonus-bar" style="display:flex;gap:4px;padding:4px 8px 3px;flex-shrink:0;border-bottom:1px solid #e5e5ea;align-items:center">
-        <span id="btn-mit-bonus" onclick="setBonusMode(true)"
-          style="cursor:pointer;font-size:11px;padding:2px 10px;border-radius:12px;border:1.5px solid #1a50a0;background:#1a50a0;color:#fff;font-weight:600;user-select:none;transition:all 0.15s">Mit Bonus</span>
-        <span id="btn-ohne-bonus" onclick="setBonusMode(false)"
-          style="cursor:pointer;font-size:11px;padding:2px 10px;border-radius:12px;border:1.5px solid #1a50a0;background:transparent;color:#1a50a0;font-weight:600;user-select:none;transition:all 0.15s">Ohne Bonus</span>
-      </div>
-      <div style="position:relative;flex:1;min-height:0">
-        <div id="hint-rangverl" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#aaa">Wird geladen…</div>
-        <canvas id="myChart"></canvas>
-      </div>
+    <div id="tab-rangverl" class="tab-content" style="display:none!important"></div>
+    <div id="tab-punktevert" class="tab-content">
+      <div id="punkteverteilung-body"></div>
     </div>
     <div id="tab-resultate" class="tab-content"><div id="resultate-body"></div></div>
     <div id="tab-frequenz" class="tab-content">
@@ -540,7 +541,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (dz) { dz.textContent = `✅ Eingebettete Tipps — ${tipData.length} Einträge`; dz.classList.add('loaded'); dz.onclick = null; }
     // refresh the active ranking sub-tab if visible
     if (currentTab === 'rangliste') {
-      for (const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','peter','fair','bonus','favoriten','zeitraum']) {
+      for (const id of ['uebersicht','rangverlaufchart','10punkte','10plus','x2','peter','fair','bonus','favoriten','zeitraum']) {
         const el = document.getElementById('sub-' + id);
         if (el && el.style.display !== 'none') { switchRangliste(id); break; }
       }
@@ -615,7 +616,7 @@ function onTipps(text, filename, dz) {
   else if (currentTab==='frequenz') calcFrequenz();
   else if (currentTab==='rangliste') {
     // Refresh active sub-tab (Peter/Weltrangliste/Marktwert need tipData)
-    for(const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','peter','fair','bonus','favoriten','zeitraum']){
+    for(const id of ['uebersicht','rangverlaufchart','10punkte','10plus','x2','peter','fair','bonus','favoriten','zeitraum']){
       const el=document.getElementById('sub-'+id);
       if(el&&el.style.display!=='none'){switchRangliste(id);break;}
     }
@@ -807,12 +808,11 @@ function toggleRanking(){
 }
 function switchTab(name){
   currentTab=name;
-  document.querySelectorAll('#main-tab-bar .tab-btn').forEach((b,i)=>b.classList.toggle('active',['rangliste','rangverl','resultate','frequenz','vergleich','gruppen','config'][i]===name));
+  document.querySelectorAll('#main-tab-bar .tab-btn').forEach((b,i)=>b.classList.toggle('active',['rangliste','punktevert','resultate','frequenz','vergleich','gruppen','config'][i]===name));
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   if(name==='rangliste') calcRanking();
-  else if(name==='rangverl') { requestAnimationFrame(()=>{ if(!chart) buildChart(); else { chart.resize(); renderRvFilter(); } }); }
-  else if(name==='punkte') calcPunkteverlauf();
+  else if(name==='punktevert') calcPunkteverteilung();
   else if(name==='resultate') calcResultate();
   else if(name==='gruppen') calcGruppen();
   else if(name==='vergleich') calcVergleich();
@@ -839,7 +839,8 @@ function refreshTabs(){
   const fi=parseInt(document.getElementById('sel-von').value), ti=parseInt(document.getElementById('sel-bis').value);
   const v=data.gameNums[fi], b=data.gameNums[ti];
   document.getElementById('ranking-subtitle').textContent=v===b?`Spiel ${v}`:`Spiel ${v} – Spiel ${b}`;
-  if(currentTab==='rangliste'){calcRanking(); if(document.getElementById('sub-punkteverteilung').style.display!=='none') calcPunkteverteilung();}
+  if(currentTab==='rangliste') calcRanking();
+  else if(currentTab==='punktevert') calcPunkteverteilung();
   else if(currentTab==='resultate') calcResultate();
   else if(currentTab==='gruppen'||currentTab==='punkte') return;
   else if(currentTab==='vergleich'){calcVergleich();return;}
@@ -883,7 +884,7 @@ function toggleVirtual(){
   showVirtual=!showVirtual;
   const btn=document.getElementById('virt-toggle-btn');
   if(btn) btn.textContent=showVirtual?'🤖 ein':'🤖 aus';
-  for(const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','peter','fair','bonus','favoriten','zeitraum']){
+  for(const id of ['uebersicht','rangverlaufchart','10punkte','10plus','x2','peter','fair','bonus','favoriten','zeitraum']){
     const el=document.getElementById('sub-'+id);
     if(el&&el.style.display!=='none'){switchRangliste(id);break;}
   }
@@ -1086,7 +1087,7 @@ function calcRanking(){
   el.innerHTML=zusLegend+buildWideTable(players,uebSort,'sortUeb',cols,groupHdr);
 }
 function getActiveRanglisteEl(){
-  for(const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','peter','fair','bonus','favoriten','zeitraum']){
+  for(const id of ['uebersicht','rangverlaufchart','10punkte','10plus','x2','peter','fair','bonus','favoriten','zeitraum']){
     const el=document.getElementById('sub-'+id);
     if(el&&el.style.display!=='none') return el;
   }
@@ -1189,33 +1190,31 @@ function exportRankingCSV(){
   a.download=`WM_Rangliste_${sub.replace(/\s/g,'_').replace(/[–—]/g,'-')}.csv`; a.click();
 }
 function switchRangliste(name){
-  ['uebersicht','rangverlauf','10punkte','10plus','punkteverteilung','x2','peter','fair','bonus','favoriten','zeitraum']
-    .forEach(id=>document.getElementById('sub-'+id).style.display=name===id?'':'none');
+  ['uebersicht','rangverlauf','rangverlaufchart','10punkte','10plus','x2','peter','fair','bonus','favoriten','zeitraum']
+    .forEach(id=>{ const el=document.getElementById('sub-'+id); if(el) el.style.display=name===id?'':'none'; });
   document.querySelectorAll('.sub-tab-btn').forEach(b=>b.classList.toggle('active',
-    (name==='uebersicht'       && b.textContent.includes('SRF-Punkte')) ||
-    (name==='10punkte'         && b.textContent.includes('10 Punkte')) ||
-    (name==='10plus'           && b.textContent.includes('+10')) ||
-    (name==='punkteverteilung' && b.textContent.includes('Punkteverteilung')) ||
-
-    (name==='x2'               && b.textContent.includes('×2')) ||
-    (name==='peter'            && b.textContent.includes('Peter')) ||
-    (name==='fair'             && b.textContent.includes('Fair')) ||
-    (name==='bonus'            && b.textContent.includes('Bonus')) ||
-    (name==='rangverlauf'      && b.textContent.includes('Rangverlauf')) ||
-    (name==='favoriten'        && b.textContent.includes('Favoriten')) ||
-    (name==='zeitraum'         && b.textContent.includes('eitraum'))));
+    (name==='uebersicht'        && b.textContent.includes('SRF-Punkte')) ||
+    (name==='bonus'             && b.textContent.includes('Bonus')) ||
+    (name==='rangverlauf'       && b.textContent.includes('Punkteverlauf')) ||
+    (name==='rangverlaufchart'  && b.textContent.includes('Rangverlauf')) ||
+    (name==='zeitraum'          && b.textContent.includes('eitraum')) ||
+    (name==='favoriten'         && b.textContent.includes('Favoriten')) ||
+    (name==='10punkte'          && b.textContent.includes('10 Punkte')) ||
+    (name==='10plus'            && b.textContent.includes('+10')) ||
+    (name==='x2'                && b.textContent.includes('×2')) ||
+    (name==='peter'             && b.textContent.includes('Peter')) ||
+    (name==='fair'              && b.textContent.includes('Fair'))));
   if(name==='uebersicht') calcRanking();
+  else if(name==='bonus') calcBonus();
   else if(name==='rangverlauf') calcPunkteverlauf();
+  else if(name==='rangverlaufchart') { requestAnimationFrame(()=>{ if(!chart) buildChart(); else { chart.resize(); renderRvFilter(); } }); }
   else if(name==='zeitraum') calcRanking();
+  else if(name==='favoriten') calcFavoriten();
   else if(name==='10punkte') calc10Punkte();
   else if(name==='10plus') calc10Plus();
-  else if(name==='punkteverteilung') calcPunkteverteilung();
-
   else if(name==='x2') calcX2();
   else if(name==='peter') calcPeter();
   else if(name==='fair') calcFair();
-  else if(name==='bonus') calcBonus();
-  else if(name==='favoriten') calcFavoriten();
 }
 
 // ── FIFA-Rang & Marktwert: Daten für virtuelle Spieler ───────
