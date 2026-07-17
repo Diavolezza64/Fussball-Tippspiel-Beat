@@ -2295,21 +2295,17 @@ function calcPunkteverlauf(){
       const ds=chart.data.datasets[hoverPlayer];
       const color=ds._savedColor||ds.borderColor;
       c.save();
-      // Breiter Glow-Halo
-      c.shadowColor=color; c.shadowBlur=40;
-      c.strokeStyle=color; c.lineWidth=6;
-      c.lineJoin='round'; c.globalAlpha=0.4;
+      c.lineJoin='round'; c.lineCap='round';
+      // Weisser Rand (outline)
+      c.shadowBlur=0; c.strokeStyle='#ffffff'; c.lineWidth=4.5; c.globalAlpha=1;
       c.beginPath();
       meta.data.forEach((pt,i)=>{i===0?c.moveTo(pt.x,pt.y):c.lineTo(pt.x,pt.y);});
       c.stroke();
-      // Scharfe Hauptlinie
-      c.shadowBlur=12; c.lineWidth=3.5; c.globalAlpha=1;
+      // Farbige Hauptlinie
+      c.strokeStyle=color; c.lineWidth=2.5; c.globalAlpha=1;
       c.beginPath();
       meta.data.forEach((pt,i)=>{i===0?c.moveTo(pt.x,pt.y):c.lineTo(pt.x,pt.y);});
       c.stroke();
-      // Punkte an jedem Datenpunkt
-      c.shadowBlur=8; c.fillStyle=color;
-      meta.data.forEach(pt=>{c.beginPath();c.arc(pt.x,pt.y,3,0,Math.PI*2);c.fill();});
       c.restore();
       // Farben wiederherstellen
       chart.data.datasets.forEach(ds=>{if(ds._savedColor){ds.borderColor=ds._savedColor;delete ds._savedColor;}});
