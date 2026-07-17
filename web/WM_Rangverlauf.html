@@ -141,14 +141,16 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
 
   <div id="ranking-panel">
     <div id="ranking-controls">
-      <span style="font-size:26px;line-height:1;margin-right:4px">🏆</span><span style="font-size:17px;font-weight:700;color:#1c1c1e;letter-spacing:-.3px">Tippspiel</span>
-      <div id="turnier-switcher" style="display:none;padding:0;border:none;margin-left:12px">
+      <span style="font-size:18px;line-height:1;margin-right:3px">🏆</span><span style="font-size:15px;font-weight:700;color:#1c1c1e;letter-spacing:-.3px">Tippspiel</span>
+      <div id="turnier-switcher" style="display:none;padding:0;border:none;margin-left:10px">
         <!-- Wird per JS befüllt -->
       </div>
-      <div style="margin-left:14px;font-size:11px;color:#3a3a3c;line-height:1.8;border-left:1px solid #d1d1d6;padding-left:12px">
-        <div style="font-size:9px;font-weight:600;color:#6c6c70;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px" title="Tippen basierend auf FIFA-Weltrangliste bzw. Marktwert (transfermarkt.ch) zu Turnierbeginn — Listen wurden nicht mehr aktualisiert">Virtuelle Teilnehmer ℹ</div>
-        <label style="cursor:pointer;display:flex;align-items:center;gap:5px"><input type="checkbox" id="cb-virt-fifa" onchange="toggleVirtFifa()"> 🌍 FIFA Rang</label>
-        <label style="cursor:pointer;display:flex;align-items:center;gap:5px"><input type="checkbox" id="cb-virt-mw"   onchange="toggleVirtMW()">   💰 Markt Wert</label>
+      <div style="margin-left:10px;font-size:10px;color:#3a3a3c;border-left:1px solid #d1d1d6;padding-left:10px;display:flex;flex-direction:column;gap:1px">
+        <div style="font-size:8px;font-weight:600;color:#6c6c70;text-transform:uppercase;letter-spacing:.4px" title="Tippen basierend auf FIFA-Weltrangliste bzw. Marktwert (transfermarkt.ch) zu Turnierbeginn — Listen wurden nicht mehr aktualisiert">Virtuelle Teilnehmer ℹ</div>
+        <div style="display:flex;gap:8px">
+          <label style="cursor:pointer;display:flex;align-items:center;gap:3px"><input type="checkbox" id="cb-virt-fifa" onchange="toggleVirtFifa()"> 🌍 FIFA</label>
+          <label style="cursor:pointer;display:flex;align-items:center;gap:3px"><input type="checkbox" id="cb-virt-mw"   onchange="toggleVirtMW()">   💰 Markt</label>
+        </div>
       </div>
       <span id="ranking-subtitle" style="font-size:11px;color:#6c6c70;margin-left:auto"></span>
     </div>
@@ -2122,11 +2124,11 @@ function calcFrequenz(){
   function matTh(label,col){
     const act=matrixSort.col===col;
     const arr=act?(matrixSort.dir===-1?' ↓':' ↑'):'';
-    const vStyle=col!=='_name'&&col!=='_total'?'writing-mode:vertical-rl;height:46px;vertical-align:bottom;padding:0 1px 2px;':'padding:2px 4px;';
+    const vStyle=col!=='_name'&&col!=='_total'?'writing-mode:vertical-rl;height:40px;vertical-align:bottom;padding:0 0 2px;':'padding:2px 4px;';
     return `<th onclick="sortMatrix('${col}')" class="sortable${act?' sort-'+(matrixSort.dir===-1?'desc':'asc'):''}" style="cursor:pointer;${vStyle}font-size:8px;text-align:left">${label}${col==='_name'||col==='_total'?`<span class="sort-arrow"></span>`:arr}</th>`;
   }
-  const CW=18;
-  const colgroup=`<col style="width:80px">`+matrixScores.map(()=>`<col style="width:${CW}px">`).join('')+`<col style="width:22px">`;
+  const CW=12;
+  const colgroup=`<col style="width:70px">`+matrixScores.map(()=>`<col style="width:${CW}px">`).join('')+`<col style="width:20px">`;
   const hdrCells=matrixScores.map(s=>matTh(s,s)).join('');
   let matHtml=`<table id="freq-matrix-table" class="ptable" style="table-layout:fixed;font-size:9px"><colgroup>${colgroup}</colgroup>
     <thead><tr>
