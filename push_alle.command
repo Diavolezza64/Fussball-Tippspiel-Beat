@@ -81,13 +81,16 @@ while IFS= read -r REPO || [ -n "$REPO" ]; do
         echo "   ✅ config/github_repo.txt gesetzt: $REPO"
     fi
 
-    # .gitignore: github_token.txt + teilnehmer.json NIE committen
-    if [ -f ".gitignore" ]; then
-        grep -qxF "config/github_token.txt" .gitignore || echo "config/github_token.txt" >> .gitignore
-        grep -qxF "config/teilnehmer.json"  .gitignore || echo "config/teilnehmer.json"  >> .gitignore
-    else
-        printf "config/github_token.txt\nconfig/teilnehmer.json\n" > .gitignore
-    fi
+    # .gitignore: persönliche Dateien NIE committen
+    for IGNORE_FILE in "config/github_token.txt" "config/teilnehmer.json" "data/zusatz_spieler.csv" "config/ausschluss.txt"; do
+        if [ -f ".gitignore" ]; then
+            grep -qxF "$IGNORE_FILE" .gitignore || echo "$IGNORE_FILE" >> .gitignore
+        else
+            echo "$IGNORE_FILE" >> .gitignore
+        fi
+        # Aus Git-Index entfernen falls noch getrackt (ohne lokale Datei zu löschen)
+        git rm --cached "$IGNORE_FILE" 2>/dev/null && echo "   ✅ entfernt aus Git: $IGNORE_FILE"
+    done
 
     # WM_Rangverlauf.html (Layout aktualisieren, Config-Daten leeren für Satellite)
     if [ -f "$DIR/web/WM_Rangverlauf.html" ]; then
