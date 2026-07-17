@@ -2155,15 +2155,16 @@ function calcFrequenz(){
     return va!==vb ? matrixSort.dir*(va-vb) : a.localeCompare(b,'de');
   });
 
-  const CW=16;
-  const colgroup=`<col style="width:80px">`+matrixScores.map(()=>`<col style="width:${CW}px">`).join('')+`<col style="width:20px">`;
+  const CW=13;
+  const colgroup=`<col style="width:65px">`+matrixScores.map(()=>`<col style="width:${CW}px">`).join('')+`<col style="width:16px">`;
 
   function matTh(label,col,align='right'){
     const act=matrixSort.col===col;
-    const arr=act?(matrixSort.dir===-1?' ↓':' ↑'):'';
-    return `<th onclick="sortMatrix('${col}')" style="text-align:${align};color:#000;font-size:8px;font-weight:600;`
-      +`padding:1px 1px;cursor:pointer;white-space:nowrap;`
-      +`${act?'border-bottom:2px solid #5a9aca;':''}user-select:none">${label}${arr}</th>`;
+    const arr=act?(matrixSort.dir===-1?'↓':'↑'):'';
+    if(col!=='_name'&&col!=='_total'){
+      return `<th onclick="sortMatrix('${col}')" style="writing-mode:vertical-rl;height:44px;vertical-align:bottom;text-align:left;padding:0 1px 1px;color:#000;font-size:7px;font-weight:600;cursor:pointer;${act?'color:#1a50a0;':''}user-select:none">${label}${arr}</th>`;
+    }
+    return `<th onclick="sortMatrix('${col}')" style="text-align:${align};color:#000;font-size:8px;font-weight:600;padding:1px 1px;cursor:pointer;white-space:nowrap;${act?'border-bottom:2px solid #5a9aca;':''}user-select:none">${label}${arr}</th>`;
   }
 
   const hdrCells=matrixScores.map(s=>matTh(s,s)).join('');
@@ -2196,7 +2197,7 @@ function calcFrequenz(){
 
   el.innerHTML=`<p style="font-size:10px;color:#555;padding:3px 0 7px">
     ${numGames} Spiel${numGames>1?'e':''} · ${rows.length} verschiedene Scores · ${totalTips} Tipps total</p>
-    <div style="display:flex;gap:20px;align-items:flex-start">${leftHtml}${rightHtml}</div>`;
+    <div style="display:flex;gap:12px;align-items:flex-start">${leftHtml}${rightHtml}</div>`;
 }
 
 function sortFrequenz(col){
