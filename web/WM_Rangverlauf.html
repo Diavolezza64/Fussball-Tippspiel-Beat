@@ -410,101 +410,62 @@ function getHiddenPlayers(){ return _cfgFormer; }
 function renderConfig() {
   const el = document.getElementById('config-inner');
   if (!el || !data) return;
-  const activeNames = new Set(data.members);
 
-  // Aktive = in data.members UND nicht in _cfgFormer
-  const aktive = data.members.filter(n => !_cfgFormer.has(n));
-  // Ehemalige = in _cfgFormer (egal ob in data.members oder nicht)
+  const aktive   = data.members.filter(n => !_cfgFormer.has(n));
   const ehemalige = [..._cfgFormer];
 
-  const rowAktiv = aktive.map((name,i) => `
-    <tr style="border-bottom:1px solid #f2f2f7">
-      <td style="padding:5px 10px;font-size:12px;color:#6c6c70;width:28px">${i+1}</td>
-      <td style="padding:5px 10px;font-size:12px">${name}</td>
-      <td style="padding:5px 8px;width:120px;text-align:right">
-        <button onclick="cfgMakeFormer('${name.replace(/'/g,"\\'")}','aktiv-${i}')"
-          style="font-size:11px;background:#ff9500;color:#fff;border:none;border-radius:5px;padding:3px 10px;cursor:pointer">
-          → ehemaliger
-        </button>
-      </td>
-    </tr>`).join('');
+  const btnF = (name,i) => `<button onclick="cfgMakeFormer('${name.replace(/'/g,"\\'")}','aktiv-${i}')"
+    style="font-size:10px;background:#ff9500;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer">→ ehemaliger</button>`;
+  const btnA = (name,i) => `<button onclick="cfgMakeActive('${name.replace(/'/g,"\\'")}','ehem-${i}')"
+    style="font-size:10px;background:#34c759;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer">→ aktiv</button>`;
 
   const rowEhemal = ehemalige.length === 0
-    ? '<tr><td colspan="3" style="padding:10px;font-size:11px;color:#aaa">Keine ehemaligen Mitglieder</td></tr>'
-    : ehemalige.map((name,i) => `
-    <tr style="border-bottom:1px solid #f2f2f7;background:#fffbf0">
-      <td style="padding:5px 10px;font-size:12px;color:#6c6c70;width:28px">${i+1}</td>
-      <td style="padding:5px 10px;font-size:12px">${name}</td>
-      <td style="padding:5px 8px;width:120px;text-align:right">
-        <button onclick="cfgMakeActive('${name.replace(/'/g,"\\'")}','ehem-${i}')"
-          style="font-size:11px;background:#34c759;color:#fff;border:none;border-radius:5px;padding:3px 10px;cursor:pointer">
-          → aktiv
-        </button>
-      </td>
-    </tr>`).join('');
+    ? `<tr><td colspan="3" style="color:#aaa;font-style:italic">Keine ehemaligen Mitglieder</td></tr>`
+    : ehemalige.map((name,i)=>`<tr>
+        <td style="color:#6c6c70;width:24px">${i+1}</td>
+        <td>${name}</td>
+        <td style="text-align:right">${btnA(name,i)}</td>
+      </tr>`).join('');
 
-  const rowExtra = _cfgExtra.map((p,i) => `
-    <tr style="border-bottom:1px solid #f2f2f7">
-      <td style="padding:4px 8px">
-        <input value="${(p.name||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'name',this.value)"
-          placeholder="Name"
-          style="width:140px;font-size:12px;border:1px solid #d1d1d6;border-radius:4px;padding:3px 6px;font-family:inherit">
-      </td>
-      <td style="padding:4px 8px">
-        <input value="${(p.id||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'id',this.value)"
-          placeholder="SRF-ID"
-          style="width:90px;font-size:12px;border:1px solid #d1d1d6;border-radius:4px;padding:3px 6px;font-family:inherit">
-      </td>
-      <td style="padding:4px 6px;width:36px">
-        <button onclick="cfgExtraDel(${i})"
-          style="font-size:11px;background:#ff3b30;color:#fff;border:none;border-radius:4px;padding:2px 7px;cursor:pointer">✕</button>
-      </td>
-    </tr>`).join('');
+  const rowAktiv = aktive.length === 0
+    ? `<tr><td colspan="3" style="color:#aaa;font-style:italic">Keine aktiven Mitglieder</td></tr>`
+    : aktive.map((name,i)=>`<tr>
+        <td style="color:#6c6c70;width:24px">${i+1}</td>
+        <td>${name}</td>
+        <td style="text-align:right">${btnF(name,i)}</td>
+      </tr>`).join('');
 
-  const tHead1 = `<thead><tr style="background:#fafafa">
-    <th style="padding:4px 10px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left;width:28px">#</th>
-    <th style="padding:4px 10px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left">Name</th>
-    <th style="width:120px"></th>
-  </tr></thead>`;
+  const rowExtra = _cfgExtra.length === 0
+    ? `<tr><td colspan="3" style="color:#aaa;font-style:italic">Noch keine Einträge</td></tr>`
+    : _cfgExtra.map((p,i)=>`<tr>
+        <td><input value="${(p.name||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'name',this.value)"
+          placeholder="Name" style="width:130px;font-size:11px;border:1px solid #d1d1d6;border-radius:4px;padding:2px 5px;font-family:inherit"></td>
+        <td><input value="${(p.id||'').replace(/"/g,'&quot;')}" oninput="cfgExtraEdit(${i},'id',this.value)"
+          placeholder="SRF-ID" style="width:80px;font-size:11px;border:1px solid #d1d1d6;border-radius:4px;padding:2px 5px;font-family:inherit"></td>
+        <td style="text-align:right"><button onclick="cfgExtraDel(${i})"
+          style="font-size:10px;background:#ff3b30;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer">✕</button></td>
+      </tr>`).join('');
 
   el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <h3 style="font-size:13px;font-weight:700;color:#1c1c1e;margin:0">⚙️ Konfiguration</h3>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:13px;font-weight:700;color:#1c1c1e">⚙️ Konfiguration</span>
       <span style="font-size:10px;color:#34c759">● automatisch gespeichert</span>
     </div>
-
-    <div style="background:#fff;border:1px solid #d1d1d6;border-radius:8px;overflow:hidden;margin-bottom:14px">
-      <div style="background:#fff3e0;padding:7px 12px;border-bottom:1px solid #d1d1d6">
-        <span style="font-size:12px;font-weight:600;color:#c05000">Ehemalige Mitglieder</span>
-        <span style="font-size:10px;color:#8a5000;margin-left:6px">ausgeblendet in allen Ranglisten</span>
-      </div>
-      <table style="width:100%;border-collapse:collapse">${tHead1}<tbody>${rowEhemal}</tbody></table>
-    </div>
-
-    <div style="background:#fff;border:1px solid #d1d1d6;border-radius:8px;overflow:hidden;margin-bottom:14px">
-      <div style="background:#f0fff4;padding:7px 12px;border-bottom:1px solid #d1d1d6">
-        <span style="font-size:12px;font-weight:600;color:#1a7a3a">Aktive Mitglieder</span>
-        <span style="font-size:10px;color:#3a7a50;margin-left:6px">erscheinen in allen Ranglisten</span>
-      </div>
-      <table style="width:100%;border-collapse:collapse">${tHead1}<tbody>${rowAktiv||'<tr><td colspan="3" style="padding:10px;font-size:11px;color:#aaa">Keine aktiven Mitglieder</td></tr>'}</tbody></table>
-    </div>
-
-    <div style="background:#fff;border:1px solid #d1d1d6;border-radius:8px;overflow:hidden">
-      <div style="background:#f2f2f7;padding:7px 12px;border-bottom:1px solid #d1d1d6;display:flex;align-items:center">
-        <span style="font-size:12px;font-weight:600;color:#1c1c1e">Zusätzliche Spieler</span>
-        <span style="font-size:10px;color:#6c6c70;margin-left:6px">nicht in SRF-Gruppe</span>
-        <button onclick="cfgExtraAdd()" style="margin-left:auto;font-size:11px;background:#007aff;color:#fff;border:none;border-radius:5px;padding:3px 12px;cursor:pointer">+ Hinzufügen</button>
-      </div>
-      <table style="width:100%;border-collapse:collapse">
-        <thead><tr style="background:#fafafa">
-          <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left">Name</th>
-          <th style="padding:4px 8px;font-size:10px;font-weight:600;color:#6c6c70;text-align:left;width:110px">SRF-ID</th>
-          <th style="width:36px"></th>
-        </tr></thead>
-        <tbody>${rowExtra||'<tr><td colspan="3" style="padding:10px;font-size:11px;color:#aaa">Noch keine Einträge</td></tr>'}</tbody>
-      </table>
-    </div>
-  `;
+    <table class="ptable" style="width:auto;min-width:380px">
+      <tbody>
+        <tr class="game-header"><td colspan="3">#&nbsp;&nbsp;Ehemalige Mitglieder
+          <span style="font-weight:normal;color:#6c6c70;font-size:10px;margin-left:6px">— ausgeblendet in allen Ranglisten</span></td></tr>
+        ${rowEhemal}
+        <tr class="game-header"><td colspan="3">#&nbsp;&nbsp;Aktive Mitglieder
+          <span style="font-weight:normal;color:#6c6c70;font-size:10px;margin-left:6px">— erscheinen in allen Ranglisten</span></td></tr>
+        ${rowAktiv}
+        <tr class="game-header"><td colspan="3">Zusätzliche Spieler
+          <span style="font-weight:normal;color:#6c6c70;font-size:10px;margin-left:6px">— nicht in SRF-Gruppe</span>
+          <button onclick="cfgExtraAdd()" style="margin-left:10px;font-size:10px;background:#007aff;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer">+ Hinzufügen</button>
+        </td></tr>
+        ${rowExtra}
+      </tbody>
+    </table>`;
 }
 
 function cfgMakeFormer(name) {
@@ -2171,7 +2132,7 @@ function calcFrequenz(){
   const matrixScores=[...new Set(Object.keys(tipCount))].sort((a,b)=>scoreOrder(a)-scoreOrder(b));
 
   const pMatrix={};
-  if(data) data.members.forEach(nm=>{pMatrix[nm]={};});
+  if(data) data.members.filter(nm=>!isVirtHidden(nm)).forEach(nm=>{pMatrix[nm]={};});
   for(const row of tipData){
     const gameKey=row.datum+'|'+norm(row.spiel);
     if(!validGames.has(gameKey)&&!gip.has(norm(row.spiel)))continue;
@@ -2183,7 +2144,7 @@ function calcFrequenz(){
   }
 
   // Sort rows by matrixSort state
-  const members=data?[...data.members]:[];
+  const members=data?[...data.members].filter(nm=>!isVirtHidden(nm)):[];
   members.sort((a,b)=>{
     const pa=pMatrix[a]||{}, pb=pMatrix[b]||{};
     const mc=matrixSort.col;
@@ -2193,19 +2154,19 @@ function calcFrequenz(){
     return va!==vb ? matrixSort.dir*(va-vb) : a.localeCompare(b,'de');
   });
 
-  const CW=21; // narrower columns
-  const colgroup=`<col style="width:108px">`+matrixScores.map(()=>`<col style="width:${CW}px">`).join('')+`<col style="width:28px">`;
+  const CW=16;
+  const colgroup=`<col style="width:80px">`+matrixScores.map(()=>`<col style="width:${CW}px">`).join('')+`<col style="width:20px">`;
 
   function matTh(label,col,align='right'){
     const act=matrixSort.col===col;
     const arr=act?(matrixSort.dir===-1?' ↓':' ↑'):'';
-    return `<th onclick="sortMatrix('${col}')" style="text-align:${align};color:#000;font-size:10px;font-weight:600;`
-      +`padding:2px 1px;cursor:pointer;white-space:nowrap;`
+    return `<th onclick="sortMatrix('${col}')" style="text-align:${align};color:#000;font-size:8px;font-weight:600;`
+      +`padding:1px 1px;cursor:pointer;white-space:nowrap;`
       +`${act?'border-bottom:2px solid #5a9aca;':''}user-select:none">${label}${arr}</th>`;
   }
 
   const hdrCells=matrixScores.map(s=>matTh(s,s)).join('');
-  let rightTableHtml=`<table class="ptable" id="freq-matrix-table" style="table-layout:fixed;font-size:9px"><colgroup>${colgroup}</colgroup>
+  let rightTableHtml=`<table class="ptable" id="freq-matrix-table" style="table-layout:fixed;font-size:8px"><colgroup>${colgroup}</colgroup>
     <thead><tr>
       ${matTh('Spieler','_name','left')}${hdrCells}${matTh('Σ','_total')}
     </tr></thead><tbody>`;
@@ -2216,12 +2177,12 @@ function calcFrequenz(){
     const bg=i%2===0?'background:#f7f7f9':'';
     const cells=matrixScores.map(sc=>{
       const v=pm[sc]||0;
-      return `<td style="text-align:right;padding:1px 2px;${v>0?'color:#1a5a9a':'color:#333'}">${v>0?v:''}</td>`;
+      return `<td style="text-align:right;padding:1px 1px;${v>0?'color:#1a5a9a':'color:#ddd'}">${v>0?v:''}</td>`;
     }).join('');
     rightTableHtml+=`<tr style="${bg}">
-      <td style="padding:1px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nm}</td>
+      <td style="padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nm}</td>
       ${cells}
-      <td style="text-align:right;color:#555;padding:1px 2px;font-weight:600">${total||''}</td>
+      <td style="text-align:right;color:#555;padding:1px 1px;font-weight:600">${total||''}</td>
     </tr>`;
   });
   rightTableHtml+='</tbody></table>';
