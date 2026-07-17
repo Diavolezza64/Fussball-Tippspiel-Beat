@@ -145,6 +145,11 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
       <div id="turnier-switcher" style="display:none;padding:0;border:none;margin-left:12px">
         <!-- Wird per JS befüllt -->
       </div>
+      <div style="margin-left:14px;font-size:11px;color:#3a3a3c;line-height:1.8;border-left:1px solid #d1d1d6;padding-left:12px">
+        <div style="font-size:9px;font-weight:600;color:#6c6c70;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px">Virtuelle Teilnehmer</div>
+        <label style="cursor:pointer;display:flex;align-items:center;gap:5px"><input type="checkbox" id="cb-virt-fifa" onchange="toggleVirtFifa()"> 🌍 FIFA Rang</label>
+        <label style="cursor:pointer;display:flex;align-items:center;gap:5px"><input type="checkbox" id="cb-virt-mw"   onchange="toggleVirtMW()">   💰 Markt Wert</label>
+      </div>
       <span id="ranking-subtitle" style="font-size:11px;color:#6c6c70;margin-left:auto"></span>
     </div>
     <div class="tab-bar" id="main-tab-bar">
@@ -174,7 +179,6 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
       <div style="display:flex;gap:6px;margin:4px 0 2px;align-items:center">
         <button class="export-btn" onclick="exportCurrentCSV()" style="float:none">⬇ CSV</button>
         <button class="export-btn" onclick="exportCurrentPDF()" style="float:none">⬇ PDF</button>
-        <button id="virt-toggle-btn" class="export-btn" onclick="toggleVirtual()" style="float:none;margin-left:8px;opacity:0.85" title="KI-Spieler ein-/ausblenden">🤖 ein</button>
       </div>
       <div id="sub-uebersicht" style="overflow-x:auto">
         <div id="ranking-phasen"></div>
@@ -294,7 +298,8 @@ let freqNormalize = false;
 // ── Virtual players (FIFA-Tipp, MW-Tipp) ─────────────────────
 const VIRT_FIFA = '🌍 FIFA Rang';
 const VIRT_MW   = '💰 Markt Wert';
-let showVirtual = true;
+let showFifa = false;
+let showMW   = false;
 const VIRT_COLORS = { [VIRT_FIFA]: '#ffcc00', [VIRT_MW]: '#ff8800' };
 
 function virtTip(gameName, rankMap) {
@@ -879,17 +884,26 @@ function sortPeter(col)   { if(peterSort.col===col)    peterSort.dir*=-1;    els
 function sortFair(col)    { if(fairSort.col===col)     fairSort.dir*=-1;     else{fairSort.col=col;fairSort.dir=-1;}     calcFair(); }
 
 // ── Shared wide-table renderer (used by all Rangliste sub-tabs) ──
-function toggleVirtual(){
-  showVirtual=!showVirtual;
-  const btn=document.getElementById('virt-toggle-btn');
-  if(btn) btn.textContent=showVirtual?'🤖 ein':'🤖 aus';
-  for(const id of ['uebersicht','rangverlaufchart','10punkte','10plus','x2','peter','fair','bonus','favoriten','zeitraum']){
+function toggleVirtFifa(){
+  showFifa=!!document.getElementById('cb-virt-fifa')?.checked;
+  _refreshVirtual();
+}
+function toggleVirtMW(){
+  showMW=!!document.getElementById('cb-virt-mw')?.checked;
+  _refreshVirtual();
+}
+function _refreshVirtual(){
+  // refresh all ranking sub-tabs + Häufigste Tipps + Frequenz
+  const visRangliste=['uebersicht','rangverlaufchart','10punkte','10plus','x2','peter','fair','bonus','favoriten','zeitraum'];
+  for(const id of visRangliste){
     const el=document.getElementById('sub-'+id);
     if(el&&el.style.display!=='none'){switchRangliste(id);break;}
   }
+  if(currentTab==='resultate') calcResultate();
+  if(currentTab==='frequenz')  calcFrequenz();
 }
 function buildWideTable(players, sortState, sortFn, cols, groupHdrHtml){
-  if(!showVirtual) players=players.filter(p=>p.name!==VIRT_FIFA&&p.name!==VIRT_MW);
+  players=players.filter(p=>(p.name!==VIRT_FIFA||showFifa)&&(p.name!==VIRT_MW||showMW));
   const {col:sc,dir:sd}=sortState;
   const sorted=[...players].sort((a,b)=>{
     const av=a[sc],bv=b[sc];
@@ -1403,7 +1417,7 @@ function calcFavoriten(){
 
   // Spieler-Array aufbauen (virtuelle Spieler je nach Toggle)
   let players=data.members.map((name,p)=>({name,color:PALETTE[p],...stats[name]}));
-  if(!showVirtual) players=players.filter(p=>p.name!==VIRT_FIFA&&p.name!==VIRT_MW);
+  players=players.filter(p=>(p.name!==VIRT_FIFA||showFifa)&&(p.name!==VIRT_MW||showMW));
 
   // Trefferquoten VOR dem Sortieren berechnen
   players.forEach(p=>{
@@ -1996,6 +2010,8 @@ function calcResultate(){
     if(!gip.has(row.spiel))continue;
     if(!byGame[row.spiel])byGame[row.spiel]={};
     if(!row.tipp)continue;
+    if(!showFifa&&row.name===VIRT_FIFA)continue;
+    if(!showMW  &&row.name===VIRT_MW)  continue;
     byGame[row.spiel][row.tipp]=(byGame[row.spiel][row.tipp]||[]); byGame[row.spiel][row.tipp].push(row.name);
   }
   // Resultat-Lookup nach Spielname
@@ -2066,6 +2082,8 @@ function calcFrequenz(){
   for(const row of tipData){
     const gameKey = row.datum + '|' + norm(row.spiel);
     if(!validGames.has(gameKey) && !gip.has(norm(row.spiel))) continue;
+    if(!showFifa&&row.name===VIRT_FIFA)continue;
+    if(!showMW  &&row.name===VIRT_MW)  continue;
     const t=normScore(row.tipp?.trim());
     if(t) tipCount[t]=(tipCount[t]||0)+1;
   }
