@@ -165,8 +165,7 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
         <button class="sub-tab-btn" onclick="switchRangliste('10plus')">📈 +10</button>
         <button class="sub-tab-btn" onclick="switchRangliste('x2')">🔥 ×2</button>
         <button class="sub-tab-btn" onclick="switchRangliste('punkteverteilung')">🎯 Punkteverteilung</button>
-        <button class="sub-tab-btn" onclick="switchRangliste('weltrangliste')">🌍 Weltrangliste</button>
-        <button class="sub-tab-btn" onclick="switchRangliste('marktwert')">💰 Marktwert</button>
+
         <button class="sub-tab-btn" onclick="switchRangliste('peter')">⚽ Peter</button>
         <button class="sub-tab-btn" onclick="switchRangliste('fair')">⚖️ Fair</button>
         <button class="sub-tab-btn" onclick="switchRangliste('bonus')">🏅 Bonus</button>
@@ -194,13 +193,7 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
       <div id="sub-punkteverteilung" style="display:none">
         <div id="punkteverteilung-body"></div>
       </div>
-      <div id="sub-weltrangliste" style="display:none">
-        <div id="weltrangliste-body"></div>
-      </div>
       <div id="sub-x2" style="display:none"><div id="x2-body"></div></div>
-      <div id="sub-marktwert" style="display:none">
-        <div id="marktwert-body"></div>
-      </div>
       <div id="sub-peter" style="display:none"><div id="peter-body"></div></div>
       <div id="sub-fair" style="display:none"><div id="fair-body"></div></div>
       <div id="sub-bonus" style="display:none"><div id="bonus-body"></div></div>
@@ -374,8 +367,7 @@ let pktSort = { col: 'total', dir: -1 };  // 'total' or point value (number)
 let uebSort     = { col: 'tot', dir: -1 };
 let zehnpSort   = { col: 'tot', dir: -1 };
 let zehnplusSort= { col: 'tot', dir: -1 };
-let weltSort    = { col: 'tot', dir: -1 };
-let mwSort      = { col: 'tot', dir: -1 };
+
 let x2Sort      = { col: 'tot', dir: -1 };
 let peterSort   = { col: 'tot', dir: -1 };
 let fairSort    = { col: 'tot', dir: -1 };
@@ -548,7 +540,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (dz) { dz.textContent = `✅ Eingebettete Tipps — ${tipData.length} Einträge`; dz.classList.add('loaded'); dz.onclick = null; }
     // refresh the active ranking sub-tab if visible
     if (currentTab === 'rangliste') {
-      for (const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','weltrangliste','marktwert','peter','fair','bonus','favoriten','zeitraum']) {
+      for (const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','peter','fair','bonus','favoriten','zeitraum']) {
         const el = document.getElementById('sub-' + id);
         if (el && el.style.display !== 'none') { switchRangliste(id); break; }
       }
@@ -623,7 +615,7 @@ function onTipps(text, filename, dz) {
   else if (currentTab==='frequenz') calcFrequenz();
   else if (currentTab==='rangliste') {
     // Refresh active sub-tab (Peter/Weltrangliste/Marktwert need tipData)
-    for(const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','weltrangliste','marktwert','peter','fair','bonus','favoriten','zeitraum']){
+    for(const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','peter','fair','bonus','favoriten','zeitraum']){
       const el=document.getElementById('sub-'+id);
       if(el&&el.style.display!=='none'){switchRangliste(id);break;}
     }
@@ -881,8 +873,7 @@ function roundFrac(v){
 
 function sortZehnp(col)   { if(zehnpSort.col===col)    zehnpSort.dir*=-1;    else{zehnpSort.col=col;zehnpSort.dir=-1;}    calc10Punkte(); }
 function sortZehnplus(col){ if(zehnplusSort.col===col) zehnplusSort.dir*=-1; else{zehnplusSort.col=col;zehnplusSort.dir=-1;} calc10Plus(); }
-function sortWelt(col)    { if(weltSort.col===col)     weltSort.dir*=-1;     else{weltSort.col=col;weltSort.dir=-1;}     calcWeltrangliste(); }
-function sortMW(col)      { if(mwSort.col===col)       mwSort.dir*=-1;       else{mwSort.col=col;mwSort.dir=-1;}       calcMarktwert(); }
+
 function sortX2(col)      { if(x2Sort.col===col)       x2Sort.dir*=-1;       else{x2Sort.col=col;x2Sort.dir=-1;}       calcX2(); }
 function sortPeter(col)   { if(peterSort.col===col)    peterSort.dir*=-1;    else{peterSort.col=col;peterSort.dir=-1;}    calcPeter(); }
 function sortFair(col)    { if(fairSort.col===col)     fairSort.dir*=-1;     else{fairSort.col=col;fairSort.dir=-1;}     calcFair(); }
@@ -892,7 +883,7 @@ function toggleVirtual(){
   showVirtual=!showVirtual;
   const btn=document.getElementById('virt-toggle-btn');
   if(btn) btn.textContent=showVirtual?'🤖 ein':'🤖 aus';
-  for(const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','weltrangliste','marktwert','peter','fair','bonus','favoriten','zeitraum']){
+  for(const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','peter','fair','bonus','favoriten','zeitraum']){
     const el=document.getElementById('sub-'+id);
     if(el&&el.style.display!=='none'){switchRangliste(id);break;}
   }
@@ -1095,7 +1086,7 @@ function calcRanking(){
   el.innerHTML=zusLegend+buildWideTable(players,uebSort,'sortUeb',cols,groupHdr);
 }
 function getActiveRanglisteEl(){
-  for(const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','weltrangliste','marktwert','peter','fair','bonus','favoriten','zeitraum']){
+  for(const id of ['uebersicht','10punkte','10plus','x2','punkteverteilung','peter','fair','bonus','favoriten','zeitraum']){
     const el=document.getElementById('sub-'+id);
     if(el&&el.style.display!=='none') return el;
   }
@@ -1198,15 +1189,14 @@ function exportRankingCSV(){
   a.download=`WM_Rangliste_${sub.replace(/\s/g,'_').replace(/[–—]/g,'-')}.csv`; a.click();
 }
 function switchRangliste(name){
-  ['uebersicht','rangverlauf','10punkte','10plus','punkteverteilung','weltrangliste','marktwert','x2','peter','fair','bonus','favoriten','zeitraum']
+  ['uebersicht','rangverlauf','10punkte','10plus','punkteverteilung','x2','peter','fair','bonus','favoriten','zeitraum']
     .forEach(id=>document.getElementById('sub-'+id).style.display=name===id?'':'none');
   document.querySelectorAll('.sub-tab-btn').forEach(b=>b.classList.toggle('active',
     (name==='uebersicht'       && b.textContent.includes('SRF-Punkte')) ||
     (name==='10punkte'         && b.textContent.includes('10 Punkte')) ||
     (name==='10plus'           && b.textContent.includes('+10')) ||
     (name==='punkteverteilung' && b.textContent.includes('Punkteverteilung')) ||
-    (name==='weltrangliste'    && b.textContent.includes('Weltrangliste')) ||
-    (name==='marktwert'        && b.textContent.includes('Marktwert')) ||
+
     (name==='x2'               && b.textContent.includes('×2')) ||
     (name==='peter'            && b.textContent.includes('Peter')) ||
     (name==='fair'             && b.textContent.includes('Fair')) ||
@@ -1220,8 +1210,7 @@ function switchRangliste(name){
   else if(name==='10punkte') calc10Punkte();
   else if(name==='10plus') calc10Plus();
   else if(name==='punkteverteilung') calcPunkteverteilung();
-  else if(name==='weltrangliste') calcWeltrangliste();
-  else if(name==='marktwert') calcMarktwert();
+
   else if(name==='x2') calcX2();
   else if(name==='peter') calcPeter();
   else if(name==='fair') calcFair();
@@ -1229,7 +1218,7 @@ function switchRangliste(name){
   else if(name==='favoriten') calcFavoriten();
 }
 
-// ── Weltrangliste & Marktwert: shared data & logic ───────────
+// ── FIFA-Rang & Marktwert: Daten für virtuelle Spieler ───────
 const FIFA_RANG_DATA = {
   'Argentinien':1,'Frankreich':2,'England':3,'Brasilien':4,'Belgien':5,
   'Portugal':6,'Spanien':7,'Niederlande':8,'Kolumbien':9,'Deutschland':10,
@@ -1272,108 +1261,6 @@ function tipDir(s){
   return g1>g2?'W1':g2>g1?'W2':'D';
 }
 
-function calcRankTab(elId, virtualName, rankMap, headerHtml, sidebarHtml){
-  const el=document.getElementById(elId);
-  if(!data){el.innerHTML='';return;}
-  const n=data.gameNums.length;
-  const gpEnd=data.gameNums.findIndex(g=>g>72);
-  const koFirst=gpEnd===-1?n:gpEnd;
-  const lastG=data.gameNums[n-1]||n;
-
-  // Tip lookup: gameName (lower) → {playerName → direction}
-  const tipLkp={};
-  if(tipData){
-    for(const row of tipData){
-      const gn=(row.spiel||'').trim().toLowerCase();
-      if(!tipLkp[gn]) tipLkp[gn]={};
-      const d=tipDir((row.tipp||'').trim());
-      if(d) tipLkp[gn][(row.name||'').trim()]=d;
-    }
-  }
-
-  function scoreRange(fi,ti){
-    fi=Math.max(0,fi); ti=Math.min(n-1,ti);
-    if(fi>ti||fi>=n) return null;
-
-    // Real players
-    const players=data.members.map((name,p)=>{
-      let pts=0;
-      for(let i=fi;i<=ti;i++){
-        const actual=tipDir(data.gameResults[i]);
-        if(!actual) continue;
-        const gn=data.gameNames[i].toLowerCase();
-        if(tipLkp[gn]?.[name]===actual) pts++;
-      }
-      return {name,color:PALETTE[p],points:pts};
-    });
-
-    // Virtual player
-    let vPts=0;
-    for(let i=fi;i<=ti;i++){
-      const actual=tipDir(data.gameResults[i]);
-      if(!actual) continue;
-      const parts=data.gameNames[i].split(' vs ');
-      if(parts.length!==2) continue;
-      const r1=rankMap[parts[0].trim()], r2=rankMap[parts[1].trim()];
-      if(!r1||!r2) continue;
-      const vTip=Math.abs(r1-r2)<=3?'D':(r1<r2?'W1':'W2');
-      if(vTip===actual) vPts++;
-    }
-
-    const all=[...players,{name:virtualName,color:'#ffcc00',points:vPts,virtual:true}];
-    all.sort((a,b)=>b.points-a.points);
-    let rank=1;
-    all.forEach((r,i)=>{if(i>0&&r.points<all[i-1].points)rank=i+1;r.rank=rank;});
-    return all;
-  }
-
-  // Build per-phase 1-pt scores for real + virtual player
-  function phScore(fi,ti){
-    fi=Math.max(0,fi); ti=Math.min(n-1,ti);
-    if(fi>ti||fi>=n) return null;
-    const rPts=data.members.map(()=>0);
-    for(let i=fi;i<=ti;i++){
-      const actual=tipDir(data.gameResults[i]); if(!actual) continue;
-      const gn=data.gameNames[i].toLowerCase();
-      data.members.forEach((name,p)=>{ if(tipLkp[gn]?.[name]===actual) rPts[p]++; });
-    }
-    return {rPts};
-  }
-
-  const gsEnd2=Math.min(koFirst-1,n-1);
-  const rng16=findRng2(73,88),  rng8=findRng2(89,96),
-        rngQF=findRng2(97,100), rngSF=findRng2(101,102), rngF=findRng2(103,200);
-  function findRng2(a,b){const fi=data.gameNums.findIndex(g=>g>=a);if(fi===-1||fi>=n)return null;let ti=fi;while(ti<n-1&&data.gameNums[ti+1]<=b)ti++;return{fi,ti};}
-
-  const sc1=phScore(0,Math.min(23,gsEnd2)), sc2=phScore(24,Math.min(47,gsEnd2)),
-        sc3=phScore(48,Math.min(gsEnd2,n-1));
-  const sc16=rng16?phScore(rng16.fi,rng16.ti):null, sc8=rng8?phScore(rng8.fi,rng8.ti):null,
-        scQF=rngQF?phScore(rngQF.fi,rngQF.ti):null, scSF=rngSF?phScore(rngSF.fi,rngSF.ti):null,
-        scF= rngF ?phScore(rngF.fi, rngF.ti) :null;
-
-  const {hasZusatz,playerZus,legend:zusLegend}=prepareZusatz();
-  const allPlayers=data.members.map((name,p)=>{
-    const r1=sc1?sc1.rPts[p]:0, r2=sc2?sc2.rPts[p]:0, r3=sc3?sc3.rPts[p]:0;
-    const gstot=r1+r2+r3;
-    const v16=sc16?sc16.rPts[p]:0, v8=sc8?sc8.rPts[p]:0, v4=scQF?scQF.rPts[p]:0,
-          v2=scSF?scSF.rPts[p]:0,  v1=scF?scF.rPts[p]:0;
-    const fstot=v16+v8+v4+v2+v1;
-    const {zus,zusText,zusP}=playerZus(name);
-    return {name,color:PALETTE[p],r1,r2,s2:r1+r2,r3,gstot,
-      v16,c16:gstot+v16,v8,c8:gstot+v16+v8,v4,c4:gstot+v16+v8+v4,
-      v2,c2:gstot+v16+v8+v4+v2,v1,fstot,zus,tot:gstot+fstot+zus,zusText,zusP};
-  });
-  // Virtual players are now real members (injected via injectVirtualPlayers)
-
-  const sortFnName=elId==='weltrangliste-body'?'sortWelt':'sortMW';
-  const sortState=elId==='weltrangliste-body'?weltSort:mwSort;
-  const {cols,groupHdr}=wideColsGF(hasZusatz);
-  el.innerHTML=headerHtml+zusLegend+
-    `<div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-top:4px">`+
-    (sidebarHtml||'')+
-    buildWideTable(allPlayers,sortState,sortFnName,cols,groupHdr)+
-    `</div>`;
-}
 
 function calcEinPunkt(){
   const el=document.getElementById('einpunkt-body');
@@ -1596,33 +1483,6 @@ function calcFavoriten(){
     statsBar+tbl;
 }
 
-function calcWeltrangliste(){
-  const rankTable=Object.entries(FIFA_RANG_DATA).sort((a,b)=>a[1]-b[1])
-    .map(([t,r],i)=>`<tr><td style="color:#888;text-align:right;padding-right:6px;width:20px;font-size:9px">${i+1}</td><td style="font-size:9px">${t} <span style="color:#888">(${r})</span></td></tr>`).join('');
-  const sidebar=`<div style="flex:0 0 130px;min-width:120px">
-    <div style="font-size:9.5px;font-weight:bold;color:#6c6c70;margin-bottom:5px">FIFA Rang</div>
-    <div style="overflow-y:scroll;height:448px">
-      <table class="ptable" style="width:100%"><tbody>${rankTable}</tbody></table>
-    </div></div>`;
-  const header=`<p style="font-size:10.5px;color:#3a3a3c;margin:4px 0 0">⚡ FIFA Rang tippt: Sieger = besser klassiertes Team · Unentschieden bei ≤3 Rängen Unterschied · 1 Punkt für richtigen Resultattyp</p>`;
-  calcRankTab('weltrangliste-body','FIFA Rang',FIFA_RANG_DATA,header,sidebar);
-}
-
-function calcMarktwert(){
-  const mvTable=Object.entries(MARKTWERT_MIO).sort((a,b)=>b[1]-a[1])
-    .map(([t,v],i)=>`<tr>
-      <td style="color:#888;text-align:right;padding-right:5px;width:20px;font-size:9px">${i+1}</td>
-      <td style="font-size:9px">${t}</td>
-      <td style="color:#6c6c70;text-align:right;font-size:8.5px;padding-left:3px;white-space:nowrap">${v}M</td>
-    </tr>`).join('');
-  const sidebar=`<div style="flex:0 0 165px;min-width:150px">
-    <div style="font-size:9.5px;font-weight:bold;color:#6c6c70;margin-bottom:5px">Marktwert (Mio €)</div>
-    <div style="overflow-y:scroll;height:448px">
-      <table class="ptable" style="width:100%"><tbody>${mvTable}</tbody></table>
-    </div></div>`;
-  const header=`<p style="font-size:10.5px;color:#3a3a3c;margin:4px 0 0">⚡ Marktwert tippt: Sieger = höherwertiges Team · Unentschieden bei ≤3 Rängen im Marktwert-Ranking · 1 Punkt für richtigen Resultattyp</p>`;
-  calcRankTab('marktwert-body','Marktwert',MW_RANG,header,sidebar);
-}
 
 // ── Sub-Tab: 10 Punkte ───────────────────────────────────────
 function calc10Punkte(){
