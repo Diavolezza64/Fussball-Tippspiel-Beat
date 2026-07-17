@@ -186,8 +186,8 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
         <div id="ranking-phasen"></div>
       </div>
       <div id="sub-rangverlauf" style="display:none">
+        <div id="pv-filter-bar" style="display:flex;flex-wrap:wrap;gap:5px;padding:6px 8px 4px;flex-shrink:0;border-bottom:1px solid #e5e5ea;min-height:32px"></div>
         <div style="height:750px;position:relative;margin-bottom:8px"><canvas id="punkteChart"></canvas></div>
-        <div id="punkte-legend" style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0"></div>
       </div>
       <div id="sub-10punkte" style="display:none">
         <div id="zehnpunkte-body"></div>
@@ -203,7 +203,7 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
           <span id="btn-ohne-bonus" onclick="setBonusMode(false)"
             style="cursor:pointer;font-size:11px;padding:2px 10px;border-radius:12px;border:1.5px solid #1a50a0;background:transparent;color:#1a50a0;font-weight:600;user-select:none;transition:all 0.15s">Ohne Bonus</span>
         </div>
-        <div style="position:relative;height:460px">
+        <div style="position:relative;height:750px">
           <div id="hint-rangverl" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#aaa">Wird geladen…</div>
           <canvas id="myChart"></canvas>
         </div>
@@ -292,6 +292,7 @@ const PALETTE = [
 let chart = null, freqChartInstance = null;
 let activePlayer = null, data = null, tipData = null;
 let _rvFilter = new Set();
+let _pvFilter = new Set();
 let _showBonus = true;
 let currentTab = 'rangliste';
 let freqSort = { col: 'tips', dir: -1 };   // -1 = desc
@@ -640,6 +641,46 @@ function applyRvFilter() {
     chart.setDatasetVisibility(i, visible);
   });
   chart.update('none');
+}
+
+function renderPvFilter() {
+  const bar = document.getElementById('pv-filter-bar');
+  if (!bar || !data) return;
+  const hidden = getHiddenPlayers();
+  const players = data.members.filter(n => !hidden.has(n) && !isVirtHidden(n));
+  const anySelected = _pvFilter.size > 0;
+  const allBtn = `<span onclick="clearPvFilter()"
+      style="cursor:pointer;font-size:11px;padding:2px 9px;border-radius:12px;
+             border:1.5px solid #8e8e93;
+             background:${_pvFilter.size===0 ? '#8e8e93' : 'transparent'};
+             color:${_pvFilter.size===0 ? '#fff' : '#8e8e93'};
+             font-weight:600;user-select:none;transition:all 0.15s">Alle</span>`;
+  bar.innerHTML = allBtn + players.map(name => {
+    const realIdx = data.members.indexOf(name);
+    const color = PALETTE[realIdx] || '#888';
+    const active = _pvFilter.has(name);
+    const dim = anySelected && !active;
+    return `<span onclick="togglePvFilter('${name.replace(/'/g,"\\'")}',${realIdx})"
+      style="cursor:pointer;font-size:11px;padding:2px 9px;border-radius:12px;
+             border:1.5px solid ${color};
+             background:${active ? color : 'transparent'};
+             color:${active ? '#fff' : color};
+             opacity:${dim ? '0.35' : '1'};
+             transition:all 0.15s;user-select:none">${name}</span>`;
+  }).join('');
+}
+function clearPvFilter() { _pvFilter.clear(); renderPvFilter(); applyPvFilter(); }
+function togglePvFilter(name) {
+  if (_pvFilter.has(name)) { _pvFilter.delete(name); } else { _pvFilter.add(name); }
+  renderPvFilter(); applyPvFilter();
+}
+function applyPvFilter() {
+  if (!punkteChartInst) return;
+  const anySelected = _pvFilter.size > 0;
+  punkteChartInst.data.datasets.forEach((ds, i) => {
+    punkteChartInst.setDatasetVisibility(i, !anySelected || _pvFilter.has(ds.label));
+  });
+  punkteChartInst.update('none');
 }
 
 function setBonusMode(withBonus) {
@@ -2251,21 +2292,17 @@ function onLeavePlayer(){
 
 function calcPunkteverlauf(){
   if(!data)return;
-  const el=document.getElementById('punkte-legend');
   const N=data.members.length;
   _punkteN=N;
-  const hue=i=>Math.round(i*360/N);
-  _punkteHue=hue;
-  const col=(i,a=1)=>`hsla(${hue(i)},70%,55%,${a})`;
 
   const labels=data.gameNums.map((n,gi)=>`Spiel ${n}\n${(data.gameDates[gi]||'').slice(0,6)}`);
-  // Alphabetisch sortiert — Farbe und Dataset-Index folgen der Sortierung
   const _hidden=getHiddenPlayers();
+  // Selbe Reihenfolge + selbe PALETTE-Farben wie Rangverlauf
   const sortedMembers=[...data.members.map((name,p)=>({name,p}))].filter(({name})=>!_hidden.has(name)&&!isVirtHidden(name)).sort((a,b)=>a.name.localeCompare(b.name,'de'));
-  const datasets=sortedMembers.map(({name,p},si)=>({
+  const datasets=sortedMembers.map(({name,p})=>({
     label:name,
     data:data.points[p],
-    borderColor:col(si),
+    borderColor:PALETTE[p]||'#888',
     backgroundColor:'transparent',
     borderWidth:1.5,
     pointRadius:0,
@@ -2277,38 +2314,26 @@ function calcPunkteverlauf(){
     id:'punkteGlow',
     beforeDatasetsDraw(chart){
       if(hoverPlayer===-1)return;
-      // Alle nicht-hover Datasets auf sehr niedrige Deckkraft setzen
       chart.data.datasets.forEach((ds,idx)=>{
-        ds._savedColor=ds._savedColor||ds.borderColor;
-        ds.borderColor = idx===hoverPlayer ? ds._savedColor : ds._savedColor.replace(/,[\d.]+\)$/,',0.12)').replace(/hsla\(([^,]+),([^,]+),([^,]+),[\d.]+\)/,(_,h,s,l)=>`hsla(${h},${s},${l},0.10)`);
+        if(!ds._orig) ds._orig=ds.borderColor;
+        ds.borderColor = idx===hoverPlayer ? ds._orig : ds._orig+'28';
       });
     },
     afterDatasetsDraw(chart){
-      if(hoverPlayer===-1){
-        // Farben wiederherstellen
-        chart.data.datasets.forEach(ds=>{if(ds._savedColor){ds.borderColor=ds._savedColor;delete ds._savedColor;}});
-        return;
-      }
+      // Farben immer wiederherstellen
+      chart.data.datasets.forEach(ds=>{if(ds._orig){ds.borderColor=ds._orig;delete ds._orig;}});
+      if(hoverPlayer===-1) return;
+      // Hover-Linie schwarz drüber zeichnen
       const c=chart.ctx;
       const meta=chart.getDatasetMeta(hoverPlayer);
       if(!meta||!meta.data||meta.hidden)return;
-      const ds=chart.data.datasets[hoverPlayer];
-      const color=ds._savedColor||ds.borderColor;
       c.save();
       c.lineJoin='round'; c.lineCap='round';
-      // Weisser Rand (outline)
-      c.shadowBlur=0; c.strokeStyle='#ffffff'; c.lineWidth=4.5; c.globalAlpha=1;
-      c.beginPath();
-      meta.data.forEach((pt,i)=>{i===0?c.moveTo(pt.x,pt.y):c.lineTo(pt.x,pt.y);});
-      c.stroke();
-      // Farbige Hauptlinie
-      c.strokeStyle=color; c.lineWidth=2.5; c.globalAlpha=1;
+      c.strokeStyle='#000000'; c.lineWidth=2; c.globalAlpha=1;
       c.beginPath();
       meta.data.forEach((pt,i)=>{i===0?c.moveTo(pt.x,pt.y):c.lineTo(pt.x,pt.y);});
       c.stroke();
       c.restore();
-      // Farben wiederherstellen
-      chart.data.datasets.forEach(ds=>{if(ds._savedColor){ds.borderColor=ds._savedColor;delete ds._savedColor;}});
     }
   };
 
@@ -2338,11 +2363,8 @@ function calcPunkteverlauf(){
     plugins:[glowPlugin]
   });
 
-  // Legende — alphabetisch, Farbe und Hover-Index = sortierter Index si
-  el.innerHTML=sortedMembers.map(({name},si)=>`
-    <span onmouseenter="onHoverPlayer(${si})" onmouseleave="onLeavePlayer()"
-      style="cursor:default;padding:2px 7px;border-radius:10px;font-size:10px;
-        border:1px solid ${col(si,0.5)};color:${col(si)};background:transparent">${name}</span>`).join('');
+  renderPvFilter();
+  applyPvFilter();
 }
 
 // ── Tab 6: Vergleich ──────────────────────────────────────────
