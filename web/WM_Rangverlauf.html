@@ -2093,41 +2093,64 @@ function calcFrequenz(){
   const numGames=ti-fi+1;
   const numResults=totalResults;
 
-  function thF(label,colName,align='right'){
-    let cls='sortable';
-    if(freqSort.col===colName) cls+=' sort-'+(freqSort.dir===-1?'desc':'asc');
-    return `<th class="${cls}" style="text-align:${align};white-space:nowrap" onclick="sortFrequenz('${colName}')">${label}<span class="sort-arrow"></span></th>`;
+  // Score-Matrix: Spieler × Score
+  function scoreOrder(s){const m=s.match(/^(\d+):(\d+)$/);if(!m)return 99999;const h=+m[1],a=+m[2];return(h+a)*100+(99-h);}
+  const matrixScores=[...new Set(Object.keys(tipCount))].sort((a,b)=>scoreOrder(a)-scoreOrder(b));
+
+  const pMatrix={};
+  if(data) data.members.filter(nm=>!isVirtHidden(nm)).forEach(nm=>{pMatrix[nm]={};});
+  for(const row of tipData){
+    const gameKey=row.datum+'|'+norm(row.spiel);
+    if(!validGames.has(gameKey)&&!gip.has(norm(row.spiel)))continue;
+    if(!showFifa&&row.name===VIRT_FIFA)continue;
+    if(!showMW  &&row.name===VIRT_MW)  continue;
+    const pname=(row.name||'').trim();
+    if(!pMatrix[pname])continue;
+    const t=normScore(row.tipp?.trim());
+    if(!t)continue;
+    pMatrix[pname][t]=(pMatrix[pname][t]||0)+1;
   }
+  const members=data?[...data.members].filter(nm=>!isVirtHidden(nm)):[];
+  members.sort((a,b)=>{
+    const mc=matrixSort.col;
+    if(mc==='_name') return matrixSort.dir*a.localeCompare(b,'de');
+    const va=mc==='_total'?matrixScores.reduce((s,sc)=>s+((pMatrix[a]||{})[sc]||0),0):((pMatrix[a]||{})[mc]||0);
+    const vb=mc==='_total'?matrixScores.reduce((s,sc)=>s+((pMatrix[b]||{})[sc]||0),0):((pMatrix[b]||{})[mc]||0);
+    return va!==vb?matrixSort.dir*(va-vb):a.localeCompare(b,'de');
+  });
 
-  let rank=1;
-  let tableHtml=`<table class="ptable" style="width:auto"><thead><tr>
-    <th style="text-align:right;color:#6c6c70;width:20px">#</th>
-    ${thF('Score','score','left')}
-    ${thF('Tipps','tips')}
-    ${thF('%','tips_pct')}
-    ${thF('Res.','results')}
-    ${thF('Sp.','games')}
-  </tr></thead><tbody>`;
-
-  rows.forEach((r,i)=>{
-    if(i>0&&r.tips!==rows[i-1].tips) rank=i+1;
-    const tPct=totalTips>0?(r.tips/totalTips*100).toFixed(1)+'%':'-';
-    const isRes=r.games>0;
-    tableHtml+=`<tr${isRes?' style="background:rgba(90,186,138,0.07)"':''}>
-      <td style="color:#6c6c70;text-align:right">${rank}</td>
-      <td style="color:${isRes?'#0d7040':'#3a3a3c'};font-weight:${isRes?'600':'400'}">${r.score}</td>
-      <td style="color:#1a5a9a;text-align:right">${r.tips>0?r.tips+'×':'-'}</td>
-      <td style="color:#3a3a3c;text-align:right;font-size:10px">${tPct}</td>
-      <td style="color:#0d7040;text-align:right">${r.results>0?r.results+'×':'-'}</td>
-      <td style="color:#6c6c70;text-align:right">${r.games>0?r.games+'×':'-'}</td>
+  function matTh(label,col){
+    const act=matrixSort.col===col;
+    const arr=act?(matrixSort.dir===-1?' ↓':' ↑'):'';
+    const vStyle=col!=='_name'&&col!=='_total'?'writing-mode:vertical-rl;height:46px;vertical-align:bottom;padding:0 1px 2px;':'padding:2px 4px;';
+    return `<th onclick="sortMatrix('${col}')" class="sortable${act?' sort-'+(matrixSort.dir===-1?'desc':'asc'):''}" style="cursor:pointer;${vStyle}font-size:8px;text-align:left">${label}${col==='_name'||col==='_total'?`<span class="sort-arrow"></span>`:arr}</th>`;
+  }
+  const CW=18;
+  const colgroup=`<col style="width:80px">`+matrixScores.map(()=>`<col style="width:${CW}px">`).join('')+`<col style="width:22px">`;
+  const hdrCells=matrixScores.map(s=>matTh(s,s)).join('');
+  let matHtml=`<table id="freq-matrix-table" class="ptable" style="table-layout:fixed;font-size:9px"><colgroup>${colgroup}</colgroup>
+    <thead><tr>
+      ${matTh('Spieler','_name')}${hdrCells}${matTh('Σ','_total')}
+    </tr></thead><tbody>`;
+  members.forEach((nm,i)=>{
+    const pm=pMatrix[nm]||{};
+    const total=matrixScores.reduce((s,sc)=>s+(pm[sc]||0),0);
+    const bg=i%2===0?'background:#f7f7f9':'';
+    const cells=matrixScores.map(sc=>{
+      const v=pm[sc]||0;
+      return `<td style="text-align:center;padding:1px;color:${v>0?'#1a5a9a':'#ddd'}">${v>0?v:''}</td>`;
+    }).join('');
+    matHtml+=`<tr style="${bg}">
+      <td style="padding:1px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nm}</td>
+      ${cells}
+      <td style="text-align:center;font-weight:600;color:#3a3a3c">${total||''}</td>
     </tr>`;
   });
-  tableHtml+='</tbody></table>';
+  matHtml+='</tbody></table>';
 
   el.innerHTML=`<p style="font-size:10px;color:#555;padding:3px 0 7px">
-    ${numGames} Spiel${numGames>1?'e':''} · ${rows.length} verschiedene Scores · ${totalTips} Tipps total
-    &nbsp;·&nbsp; <span style="color:#0d7040">grün = tatsächliches Spielresultat</span></p>
-    ${tableHtml}`;
+    ${numGames} Spiel${numGames>1?'e':''} · ${rows.length} verschiedene Scores · ${totalTips} Tipps total</p>
+    <div style="overflow-x:auto">${matHtml}</div>`;
 }
 
 function sortFrequenz(col){
