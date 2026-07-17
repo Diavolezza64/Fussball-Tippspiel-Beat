@@ -146,7 +146,7 @@ const EMBEDDED_TIPPS = /*TIPPS_DATA*/[{"name": "Alessio C", "datum": "11.06.2026
         <!-- Wird per JS befüllt -->
       </div>
       <div style="margin-left:14px;font-size:11px;color:#3a3a3c;line-height:1.8;border-left:1px solid #d1d1d6;padding-left:12px">
-        <div style="font-size:9px;font-weight:600;color:#6c6c70;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px">Virtuelle Teilnehmer</div>
+        <div style="font-size:9px;font-weight:600;color:#6c6c70;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px" title="Tippen basierend auf FIFA-Weltrangliste bzw. Marktwert (transfermarkt.ch) zu Turnierbeginn — Listen wurden nicht mehr aktualisiert">Virtuelle Teilnehmer ℹ</div>
         <label style="cursor:pointer;display:flex;align-items:center;gap:5px"><input type="checkbox" id="cb-virt-fifa" onchange="toggleVirtFifa()"> 🌍 FIFA Rang</label>
         <label style="cursor:pointer;display:flex;align-items:center;gap:5px"><input type="checkbox" id="cb-virt-mw"   onchange="toggleVirtMW()">   💰 Markt Wert</label>
       </div>
@@ -300,6 +300,7 @@ const VIRT_FIFA = '🌍 FIFA Rang';
 const VIRT_MW   = '💰 Markt Wert';
 let showFifa = false;
 let showMW   = false;
+function isVirtHidden(name){ return (name===VIRT_FIFA&&!showFifa)||(name===VIRT_MW&&!showMW); }
 const VIRT_COLORS = { [VIRT_FIFA]: '#ffcc00', [VIRT_MW]: '#ff8800' };
 
 function virtTip(gameName, rankMap) {
@@ -728,7 +729,7 @@ function buildChart() {
   const datasets=members.map((name,p)=>({
     label:name, data:chartRanks[p], borderColor:PALETTE[p], backgroundColor:PALETTE[p],
     borderWidth:1.8, pointRadius:4, pointHoverRadius:7, tension:0, fill:false, order:N-p
-  })).filter((_,p)=>!hidden.has(members[p]));
+  })).filter((_,p)=>!hidden.has(members[p])&&!isVirtHidden(members[p]));
   if (chart) chart.destroy();
   const hintEl=document.getElementById('hint-rangverl'); if(hintEl) hintEl.style.display='none';
   const canvas=document.getElementById('myChart');
@@ -857,7 +858,7 @@ function getRankingRows(){
   const hidden=getHiddenPlayers();
   const rows=data.members.map((name,p)=>({name,color:PALETTE[p],
     points:data.points[p][ti]-(fi>0?data.points[p][fi-1]:0)}))
-    .filter(r=>!hidden.has(r.name));
+    .filter(r=>!hidden.has(r.name)&&!isVirtHidden(r.name));
   rows.sort((a,b)=>b.points-a.points);
   let rank=1; rows.forEach((r,i)=>{if(i>0&&r.points<rows[i-1].points)rank=i+1;r.rank=rank;});
   return rows;
@@ -893,8 +894,10 @@ function toggleVirtMW(){
   _refreshVirtual();
 }
 function _refreshVirtual(){
+  // Rangverlauf-Chart muss bei Änderung neu gebaut werden
+  if(chart){chart.destroy();chart=null;}
   // refresh all ranking sub-tabs + Häufigste Tipps + Frequenz
-  const visRangliste=['uebersicht','rangverlaufchart','10punkte','10plus','x2','peter','fair','bonus','favoriten','zeitraum'];
+  const visRangliste=['uebersicht','rangverlauf','rangverlaufchart','10punkte','10plus','x2','peter','fair','bonus','favoriten','zeitraum'];
   for(const id of visRangliste){
     const el=document.getElementById('sub-'+id);
     if(el&&el.style.display!=='none'){switchRangliste(id);break;}
@@ -1924,7 +1927,7 @@ function calcPunkteverteilung(){
         total+=data.points[p][t]-(f>0?data.points[p][f-1]:0);
       }
       return {name,color:PALETTE[p],cnt,total};
-    });
+    }).filter(({name})=>!isVirtHidden(name));
     return {players,vals:LBLS};
   }
 
@@ -2314,7 +2317,7 @@ function calcPunkteverlauf(){
   const labels=data.gameNums.map((n,gi)=>`Spiel ${n}\n${(data.gameDates[gi]||'').slice(0,6)}`);
   // Alphabetisch sortiert — Farbe und Dataset-Index folgen der Sortierung
   const _hidden=getHiddenPlayers();
-  const sortedMembers=[...data.members.map((name,p)=>({name,p}))].filter(({name})=>!_hidden.has(name)).sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  const sortedMembers=[...data.members.map((name,p)=>({name,p}))].filter(({name})=>!_hidden.has(name)&&!isVirtHidden(name)).sort((a,b)=>a.name.localeCompare(b.name,'de'));
   const datasets=sortedMembers.map(({name,p},si)=>({
     label:name,
     data:data.points[p],
