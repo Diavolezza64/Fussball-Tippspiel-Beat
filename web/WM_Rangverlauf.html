@@ -712,7 +712,7 @@ function getRanksForChart() {
   const G = points[0]?.length || 0;
   // Punkte anpassen: Mit Bonus = wie im CSV; Ohne Bonus = gestaffelten Bonus abziehen
   const adjPoints = members.map((_, p) =>
-    points[p].map((pt, g) => _showBonus ? pt : pt - getBonusAt(p, g))
+    points[p].map((pt, g) => _showBonus ? pt + getBonusAt(p, g) : pt)
   );
   // Rang neu berechnen pro Spiel
   const adjRanks = members.map(() => new Array(G));
@@ -763,7 +763,7 @@ function buildChart() {
     plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(255,255,255,0.97)',
       titleColor:'#1c1c1e',bodyColor:'#6c6c70',borderColor:'#d1d1d6',borderWidth:1,
       cornerRadius:8,
-      callbacks:{title:c=>c[0]?.label||'',label:c=>{const p=c.datasetIndex,g=c.dataIndex,bon=_showBonus?0:getBonusAt(p,g);return`  ${data.members[p]}: Rang ${c.raw}   (${data.points[p][g]-bon} Pkt. kum.)`;}}}}
+      callbacks:{title:c=>c[0]?.label||'',label:c=>{const p=c.datasetIndex,g=c.dataIndex,pts=data.points[p][g]+(_showBonus?getBonusAt(p,g):0);return`  ${data.members[p]}: Rang ${c.raw}   (${pts} Pkt. kum.)`;}}}}
   }});
   renderRvFilter();
   applyRvFilter();
