@@ -1,0 +1,19 @@
+{
+  "gruppenphase": {
+    "exakt":            10,
+    "sieger_diff":       8,
+    "sieger_eine_tor":   6,
+    "sieger":            5,
+    "eine_tor":          1,
+    "sonst":             0
+  },
+  "ko_multiplikator": 2,
+  "bonus": {
+    "weltmeister":        50,
+    "torschuetzenkoenig": 20,
+    "nullnull_max":       20,
+    "ch_abschneiden":     10,
+    "ch_tore":            10
+  },
+  "weltmeister_2026": "Spanien"
+}
