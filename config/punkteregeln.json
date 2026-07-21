@@ -1,19 +1,137 @@
 {
-  "gruppenphase": {
-    "exakt":            10,
-    "sieger_diff":       8,
-    "sieger_eine_tor":   6,
-    "sieger":            5,
-    "eine_tor":          1,
-    "sonst":             0
+  "_kommentar": "Punkteregeln für alle Ranglisten-Tabs. ko_multiplikator_runden: {runde: multiplikator auf Basispunkte}",
+
+  "srf": {
+    "_beschreibung": "Standard SRF-Rangliste. KO-Spiele werden mit ×2 bewertet.",
+    "basis": {
+      "exakt":           10,
+      "sieger_diff":      8,
+      "sieger_eine_tor":  6,
+      "sieger":           5,
+      "eine_tor":         1,
+      "sonst":            0
+    },
+    "ko_multiplikator_runden": {
+      "r32_1_16":  2,
+      "r16_1_8":   2,
+      "qf_1_4":    2,
+      "sf_1_2":    2,
+      "final_1_1": 2
+    },
+    "weltmeister_2026": "Spanien"
   },
-  "ko_multiplikator": 2,
+
+  "zehnpunkte": {
+    "_beschreibung": "10-Punkte-Rangliste. Alle Spiele gleich gewichtet — KO-Spiele NICHT verdoppelt. Max 10 Punkte pro Spiel.",
+    "basis": {
+      "exakt":           10,
+      "sieger_diff":      8,
+      "sieger_eine_tor":  6,
+      "sieger":           5,
+      "eine_tor":         1,
+      "sonst":            0
+    },
+    "ko_multiplikator_runden": {
+      "r32_1_16":  1,
+      "r16_1_8":   1,
+      "qf_1_4":    1,
+      "sf_1_2":    1,
+      "final_1_1": 1
+    }
+  },
+
+  "zehnplus": {
+    "_beschreibung": "+10-Rangliste. SRF-Basis, aber KO-Multiplier steigt pro Runde um +1 (max +10 pro Runde). 1/16 max 20, 1/8 max 30, 1/4 max 40, 1/2 max 50, Final max 60.",
+    "basis": {
+      "exakt":           10,
+      "sieger_diff":      8,
+      "sieger_eine_tor":  6,
+      "sieger":           5,
+      "eine_tor":         1,
+      "sonst":            0
+    },
+    "ko_multiplikator_runden": {
+      "r32_1_16":  2,
+      "r16_1_8":   3,
+      "qf_1_4":    4,
+      "sf_1_2":    5,
+      "final_1_1": 6
+    }
+  },
+
+  "x2": {
+    "_beschreibung": "×2-Rangliste. SRF-Basis, KO-Multiplikator verdoppelt sich pro Runde. 1/16 ×2, 1/8 ×4, 1/4 ×8, 1/2 ×16, Final ×32.",
+    "basis": {
+      "exakt":           10,
+      "sieger_diff":      8,
+      "sieger_eine_tor":  6,
+      "sieger":           5,
+      "eine_tor":         1,
+      "sonst":            0
+    },
+    "ko_multiplikator_runden": {
+      "r32_1_16":   2,
+      "r16_1_8":    4,
+      "qf_1_4":     8,
+      "sf_1_2":    16,
+      "final_1_1": 32
+    }
+  },
+
+  "peter": {
+    "_beschreibung": "Peter-Rangliste. Eigenes Punktesystem (max 4 Punkte), Unentschieden kann keine 'richtige Tordifferenz' erzielen. KO-Multiplier steigt pro Runde.",
+    "basis": {
+      "exakt":            4,
+      "sieger_diff":      3,
+      "_sieger_diff_hinweis": "Nur wenn Resultat KEIN Unentschieden (rT != 0)",
+      "sieger":           2,
+      "eine_tor":         0,
+      "sonst":            0
+    },
+    "ko_multiplikator_runden": {
+      "r32_1_16":  2,
+      "r16_1_8":   2,
+      "qf_1_4":    3,
+      "sf_1_2":    4,
+      "final_1_1": 5
+    }
+  },
+
+  "fair": {
+    "_beschreibung": "Fair-Rangliste. Alle Spiele gleich gewichtet (kein KO-Multiplier). Exaktes Resultat gibt 10 + 1 Punkt pro erzieltem Tor.",
+    "basis": {
+      "exakt_basis":      10,
+      "exakt_bonus":      "1_pro_tor",
+      "_exakt_beispiel":  "2:1 → 10 + (2+1) = 13 Punkte",
+      "sieger_diff":      10,
+      "_sieger_diff_hinweis": "Nur wenn Resultat KEIN Unentschieden (rT != 0)",
+      "sieger":            5,
+      "eine_tor":          0,
+      "sonst":             0
+    },
+    "ko_multiplikator_runden": {
+      "r32_1_16":  1,
+      "r16_1_8":   1,
+      "qf_1_4":    1,
+      "sf_1_2":    1,
+      "final_1_1": 1
+    }
+  },
+
   "bonus": {
-    "weltmeister":        50,
-    "torschuetzenkoenig": 20,
-    "nullnull_max":       20,
-    "ch_abschneiden":     10,
-    "ch_tore":            10
+    "weltmeister":          50,
+    "torschuetzenkoenig":   20,
+    "nullnull_max":         20,
+    "ch_abschneiden":       10,
+    "ch_tore":              10
   },
-  "weltmeister_2026": "Spanien"
+
+  "spielnummern": {
+    "gruppenphase":  "1–72",
+    "r32_1_16":      "73–88",
+    "r16_1_8":       "89–96",
+    "qf_1_4":        "97–100",
+    "sf_1_2":        "101–102",
+    "final_1_1":     "103+"
+  }
 }
