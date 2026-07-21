@@ -44,7 +44,7 @@ function prGetMult(tabName, gameNum) {
   if(gameNum<=88)  return m.r32||1;
   if(gameNum<=96)  return m.r16||1;
   if(gameNum<=100) return m.qf||1;
-  if(gameNum<=102) return m.sf||1;
+  if(gameNum<=103) return m.sf||1;
   return m.ff||1;
 }
 // Zentrale Basispunkt-Berechnung (ohne Multiplier)
@@ -1193,7 +1193,7 @@ function calcRanking(){
 
   const {hasZusatz,playerZus,legend:zusLegend,bonusCols}=prepareZusatz();
   const r32=findRng(73,88), r16=findRng(89,96),
-        qf=findRng(97,100), sf=findRng(101,102), ff=findRng(103,200);
+        qf=findRng(97,100), sf=findRng(101,103), ff=findRng(104,200);
   const hasSrf=typeof SRF_LEADERBOARD!=='undefined'&&Object.keys(SRF_LEADERBOARD).length>0;
   const players=data.members.map((name,p)=>{
     const r1=phPts(p,0,Math.min(23,gsEnd));
@@ -1633,7 +1633,7 @@ function calc10Punkte(){
     fi=Math.max(0,fi);ti=Math.min(n-1,ti);if(fi>ti||fi>=n)return 0;
     let t=0;for(let i=fi;i<=ti;i++){const r=data.points[p][i]-(i>0?data.points[p][i-1]:0);t+=(i>=koFirst)?r/2:r;}return t;
   }
-  const r32=findRng(73,88),r16=findRng(89,96),qf=findRng(97,100),sf=findRng(101,102),ff=findRng(103,200);
+  const r32=findRng(73,88),r16=findRng(89,96),qf=findRng(97,100),sf=findRng(101,103),ff=findRng(104,200);
   const {hasZusatz,playerZus,legend:zusLegend,bonusCols}=prepareZusatz();
   const players=data.members.map((name,p)=>{
     const r1=phPts(p,0,Math.min(23,gsEnd)),r2=phPts(p,24,Math.min(47,gsEnd)),r3=phPts(p,48,Math.min(gsEnd,n-1));
@@ -1666,7 +1666,7 @@ function calc10Plus(){
     let t=0;for(let i=fi;i<=ti;i++){const r=data.points[p][i]-(i>0?data.points[p][i-1]:0);const g=data.gameNums[i];t+=g<=72?r:r/2*prGetMult('zehnplus',g);}return t;
   }
 
-  const r32=findRng(73,88),r16=findRng(89,96),qf=findRng(97,100),sf=findRng(101,102),ff=findRng(103,200);
+  const r32=findRng(73,88),r16=findRng(89,96),qf=findRng(97,100),sf=findRng(101,103),ff=findRng(104,200);
   const gsEnd=Math.min(koFirst-1,n-1);
   const {hasZusatz,playerZus,legend:zusLegend,bonusCols,bonusGrpTh}=prepareZusatz();
   const players=data.members.map((name,p)=>{
@@ -1720,7 +1720,7 @@ function calcX2(){
     fi=Math.max(0,fi);ti=Math.min(n-1,ti);if(fi>ti||fi>=n)return 0;
     let t=0;for(let i=fi;i<=ti;i++){const r=data.points[p][i]-(i>0?data.points[p][i-1]:0);const g=data.gameNums[i];t+=g<=72?r:r/2*prGetMult('x2',g);}return t;
   }
-  const r32=findRng(73,88),r16=findRng(89,96),qf=findRng(97,100),sf=findRng(101,102),ff=findRng(103,200);
+  const r32=findRng(73,88),r16=findRng(89,96),qf=findRng(97,100),sf=findRng(101,103),ff=findRng(104,200);
   const {hasZusatz,playerZus,legend:zusLegend,bonusCols,bonusGrpTh}=prepareZusatz();
   const players=data.members.map((name,p)=>{
     const gs=phPts(p,0,gsEnd);
@@ -1796,7 +1796,7 @@ function calcPeter(){
   }
 
   const {hasZusatz,playerZus,legend:zusLegend,bonusCols}=prepareZusatz();
-  const r32=findRng(73,88),r16=findRng(89,96),qf=findRng(97,100),sf=findRng(101,102),ff=findRng(103,200);
+  const r32=findRng(73,88),r16=findRng(89,96),qf=findRng(97,100),sf=findRng(101,103),ff=findRng(104,200);
 
   const players=data.members.map((name,p)=>{
     const r1=phPts(p,0,Math.min(23,gsEnd));
@@ -1859,7 +1859,7 @@ function calcFair(){
   }
 
   const {hasZusatz,playerZus,legend:zusLegend,bonusCols}=prepareZusatz();
-  const r32=findRng(73,88),r16=findRng(89,96),qf=findRng(97,100),sf=findRng(101,102),ff=findRng(103,200);
+  const r32=findRng(73,88),r16=findRng(89,96),qf=findRng(97,100),sf=findRng(101,103),ff=findRng(104,200);
 
   const players=data.members.map((name,p)=>{
     const r1=phPts(p,0,Math.min(23,gsEnd));
