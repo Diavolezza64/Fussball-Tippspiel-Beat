@@ -532,7 +532,7 @@ def _normalize_runde(runde):
     if any(x in r for x in ['achtelfinal', '1/8', 'roundof16']): return 'achtelfinale'
     if any(x in r for x in ['sechzehntel', '1/16', 'roundof32']): return 'sechzehntelfinale'
     if any(x in r for x in ['zweiunddrei', '1/32', 'roundof64']): return 'zweiunddreissigstefinale'
-    if r in ('final', 'finale', 'f', '1/1'):                    return 'finale'
+    if 'final' in r or '1/1' in r:                              return 'finale'
     if any(x in r for x in ['gruppe', 'vorrunde', 'group']):    return 'gruppenphase'
     return r
 
